@@ -1,2 +1,4 @@
-# vue-cool-viewer
-vue viewer
+# vue-viewer-lite
+
+A lightweight image and video lightbox gallery component for Vue.
+
