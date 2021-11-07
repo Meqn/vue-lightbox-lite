@@ -33,6 +33,11 @@
     <div
       class="cool-lightbox-inner"
       :style="innerStyles">
+      <!-- loading -->
+      <div v-show="imageLoading" class="cool-lightbox-loading-wrapper">
+        <slot name="loading"><div class="cool-lightbox-loading"></div></slot>
+      </div>
+      <!--/loading-wrapper-->
       <!-- 主体区域 -->
       <!-- 将点击关闭、滑动等事件绑定在该元素上, click 和 touch不能共存 -->
       <div
@@ -45,100 +50,63 @@
         @touchend.prevent.stop="endSwipe"
         @click.stop="closeModal">
         <div ref="items" class="cool-lightbox-slide">
-          <transition name="cool-lightbox-slide-change" mode="out-in">
-            <div v-if="getMediaType(imgIndex) === 'image'" ref="imgItem" key="image" :style="imgWrapperStyle" class="cool-lightbox-image">
-              <template v-if="getItemPictures(imgIndex).length > 0">
-                <picture :key="imgIndex">
-                  <source
-                    v-for="(source, sourceIndex) in getItemPictures(imgIndex)"
-                    :srcset="source.srcset"
-                    :type="source.type"
-                    :media="source.media"
-                    :sizes="source.sizes || currentItem.sizes"
-                    :key="`source-${imgIndex}-${sourceIndex}`"
-                  >
-                  <img
-                    :src="currentItem.src"
-                    :srcset="currentItem.srcset"
-                    :sizes="currentItem.sizes"
-                    draggable="false"
-                    :alt="currentItem.alt"
-                    @load="imageLoaded"
-                    @click.stop="zoomImage(imgIndex)"
-                    @mousedown.stop="handleMouseDown($event)"
-                    @mouseup.stop="handleMouseUp($event)"
-                    @mousemove.stop="handleMouseMove($event)"
-                  />
-                </picture>
-              </template>
-              <template v-else>
-                <img
-                  :src="currentItem.src"
-                  :srcset="currentItem.srcset"
-                  :sizes="currentItem.sizes"
-                  :key="imgIndex"
-                  draggable="false"
-                  :alt="currentItem.alt"
+          <div v-if="getMediaType(imgIndex) === 'image'" ref="imgItem" key="image" :style="imgWrapperStyle" class="cool-lightbox-image">
+            <transition name="cool-lightbox-slide-change" mode="out-in">
+              <img
+                v-load:image
+                :data-src="currentItem.src"
+                :srcset="currentItem.srcset"
+                :sizes="currentItem.sizes"
+                :key="imgIndex"
+                draggable="false"
+                :alt="currentItem.alt"
 
-                  @load="imageLoaded"
-                  @click.stop="zoomImage"
-                  @mousedown.stop="handleMouseDown($event)"
-                  @mouseup.stop="handleMouseUp($event)"
-                  @mousemove.stop="handleMouseMove($event)"
-                />
-              </template>
-              <div v-show="imageLoading" class="cool-lightbox-loading-wrapper">
-                <slot name="loading">
-                  <div class="cool-lightbox-loading"></div>
-                </slot>
-              </div>
-              <!--/loading-wrapper-->
-            </div>
-            <!--/imgs-slide-->
-
-            <div v-else-if="getMediaType(imgIndex) === 'iframe'" ref="iframeItem" key="iframe" class="cool-lightbox-iframe">
+                @click.stop="zoomImage"
+                @mousedown.stop="handleMouseDown($event)"
+                @mouseup.stop="handleMouseUp($event)"
+                @mousemove.stop="handleMouseMove($event)"
+              />
+            </transition>
+          </div>
+          <!--/imgs-slide-->
+          <div v-else-if="getMediaType(imgIndex) === 'iframe'" ref="iframeItem" key="iframe" class="cool-lightbox-iframe">
+            <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
-                class="cool-lightbox-pdf"
-                :src="currentItem.src"
+                v-load:iframe
+                :data-src="currentItem.src"
                 :key="currentItem.src"
                 frameborder="0"
-                allowfullscreen
-                @load="iframeLoaded">
+                allowfullscreen>
               </iframe>
-            </div>
-            <!--/cool-lightbox-iframe-->
-            <div v-else ref="videoItem" key="video" class="cool-lightbox-video">
+            </transition>
+          </div>
+          <!--/cool-lightbox-iframe-->
+          <div v-else ref="videoItem" key="video" class="cool-lightbox-video" :style="aspectRatioVideo">
+            <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
                 v-if="getMediaType(imgIndex) === 'webVideo'"
                 class="js-video"
-                v-autoplay
-                :data-autoplay="setAutoplay(imgIndex)"
-                :src="currentItem.src"
-                :style="aspectRatioVideo"
+                v-load:webVideo
+                :data-src="currentItem.src"
                 :key="currentItem.src"
                 frameborder="0"
-                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen
-                @load="iframeLoaded">
+                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
               </iframe>
               <video
                 v-else
                 class="js-video"
-                v-autoplay
-                :data-autoplay="setAutoplay(imgIndex)"
-                :style="aspectRatioVideo"
+                v-load:video
+                :data-src="currentItem.src"
                 :key="currentItem.src"
                 controls=""
-                controlslist="nodownload"
-                @loadeddata="loadVideo"
-                @loadstart="loadVideo">
+                controlslist="nodownload">
                 <source :src="currentItem.src" :type="videoSourceType(imgIndex)">
                 Sorry, your browser doesn't support embedded videos
               </video>
-            </div>
-            <!--/cool-lightbox-video-->
-
-          </transition>
+            </transition>
+          </div>
+          <!--/cool-lightbox-video-->
         </div>
         <!--/cool-lightbox-slide-->
       </div>
@@ -241,6 +209,7 @@
 import './index.scss'
 /* eslint-disable */
 import AutoplayVideo from "./directives/autoplay"
+import LoadMedia from './directives/load'
 import { disableBodyScroll, enableBodyScroll } from 'body-scroll-lock'
 import Icon from './Icon.vue'
 import {
@@ -248,7 +217,7 @@ import {
   closeFullscreen,
   addFullscreenListener,
   removeFullscreenListener,
-  matchAllDom,
+  matchesDom,
   randomStr,
   isObject,
   isNumber,
@@ -270,6 +239,7 @@ export default {
   },
   directives: {
     autoplay: AutoplayVideo,
+    load: LoadMedia
   },
   props: {
     index: Number,
@@ -475,24 +445,24 @@ export default {
       }
     },
     showThumbs(val) {
-      let widthGalleryBlock = 212;
+      // let widthGalleryBlock = 212;
       let swipeAnimation = 'all .3s ease'
-      if(window.innerWidth < 767) {
+      /* if(window.innerWidth < 767) {
         widthGalleryBlock = 102
         swipeAnimation = null
       }
 
       if (this.thumbsPosition === 'bottom') {
         widthGalleryBlock = 0;
-      }
+      } */
 
       this.swipeAnimation = swipeAnimation
-
+      /* 
       if(val) {
         this.xSwipeWrapper = -this.imgIndex*(window.innerWidth - widthGalleryBlock) - 30*this.imgIndex
       } else {
         this.xSwipeWrapper = -this.imgIndex*window.innerWidth - 30*this.imgIndex
-      }
+      } */
 
       setTimeout(() => {
         this.swipeAnimation = null
@@ -512,29 +482,26 @@ export default {
         if (val !== this.index) {
           this.$emit('update:index', val)
         }
-        // when animation is loaded
-        this.$nextTick(() => {
-          // 切换预览
-          if(val !== null) {
-            const item = this.getItem(val)
-            if(val !== prev) {
-              if (!isYoutube(item.src) && !isVimeo(item.src)) {
-                this.$_stopVideos()
-              }
-            }
-            // add caption padding to Lightbox wrapper
-            this.$_addCaptionPadding()
+        // 切换预览
+        if(val !== null) {
+          const item = this.getItem(val)
+          this.changeLoading(false)
 
-            const itemType = this.getMediaType(val)
-            if (['video', 'webVideo'].includes(itemType)) {
-              this.$_setAspectRatioVideo()
-            } else if (itemType === 'image') {
-              if(!this.$_is_cached(item.src)) {
-                this.imageLoading = true
-              }
+          if(val !== prev) {
+            if (!isYoutube(item.src) && !isVimeo(item.src)) {
+              this.$_stopVideos()
             }
           }
+          // 非<video>的加载
+          if (!isMp4(item.src)) {
+            this.changeLoading(true)
+          }
 
+          // add caption padding to Lightbox wrapper
+          this.$_addCaptionPadding()
+        }
+        // when animation is loaded
+        this.$nextTick(() => {
           // reset zoom
           this.resetZoom()
           // reset swipe type
@@ -563,28 +530,30 @@ export default {
 
   methods: {
     $_stopVideos() {
-      const videos = this.$el.querySelectorAll('.js-video')
-      const isVideoPlaying = video => !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2)
-      if(videos.length > 0) {
-        Array.prototype.forEach.call(videos, video => {
-          const type = video.tagName
-          
-          if(type === 'IFRAME') {
-            var iframeSrc = video.src
-            return video.src = iframeSrc
-          }
+      this.$nextTick(() => {
+        const videos = this.$el.querySelectorAll('.js-video')
+        const isVideoPlaying = video => !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2)
+        if(videos.length > 0) {
+          Array.prototype.forEach.call(videos, video => {
+            const type = video.tagName
+            
+            if(type === 'IFRAME') {
+              var iframeSrc = video.src
+              return video.src = iframeSrc
+            }
 
-          if(isVideoPlaying(video)) {
-            return video.pause()
-          }
+            if(isVideoPlaying(video)) {
+              return video.pause()
+            }
 
-        })
-      }
+          })
+        }
+      })
     },
-    setAutoplay(index) {
+    /* setAutoplay(index) {
       const item = this.getItem(index)
       return item && item.autoplay
-    },
+    }, */
     /**
      * 🚨 待清除，用 overflow: hidden 代替
      */
@@ -624,7 +593,7 @@ export default {
           '.cool-lightbox-video iframe',
           '.cool-lightbox-iframe iframe'
         ]
-        return matchAllDom(event.target, elements, event.currentTarget)
+        return matchesDom(event.target, elements, event.currentTarget)
       }
       return false
     },
@@ -655,7 +624,7 @@ export default {
         this.IsSwipping = true
         const currentPosX = this.$_getMouseXPosFromEvent(event)
         const currentPosY = this.$_getMouseYPosFromEvent(event)
-        const windowWidth = this.lightboxInnerWidth
+        // const windowWidth = this.lightboxInnerWidth
 
         // diffs
         const diffX = Math.abs(currentPosX - this.initialMouseX)
@@ -671,7 +640,7 @@ export default {
             }
           }
         }
-
+        /* 
         // swipe
         if(this.swipeType == 'h') {
           // swipe wrapper
@@ -680,7 +649,7 @@ export default {
         } else {
           this.ySwipeWrapper = currentPosY - this.initialMouseY
         }
-
+        */
         // mobile caseS
         if(event.type === 'touchmove') {
           this.endMouseX = this.$_getMouseXPosFromEvent(event);
@@ -725,7 +694,7 @@ export default {
       } 
       
       // set swipe animation
-      this.$_setSwipeAnimation()
+      // this.$_setSwipeAnimation()
 
       // reset swipe data
       setTimeout(function() {
@@ -761,15 +730,15 @@ export default {
       } 
       
       this.swipeType = null
-      const windowWidth = this.lightboxInnerWidth
+      /* const windowWidth = this.lightboxInnerWidth
 
-      this.xSwipeWrapper = -this.imgIndex*windowWidth - 30*this.imgIndex
+      this.xSwipeWrapper = -this.imgIndex*windowWidth - 30*this.imgIndex */
     },
 
     // function that return x position from event
     $_getMouseXPosFromEvent(event) {
       if(event.type.indexOf('mouse') !== -1){
-          return event.clientX;
+        return event.clientX;
       }
       return event.touches[0].clientX;
     },
@@ -941,8 +910,6 @@ export default {
       // only if index is not null
       const item = this.$refs.imgItem
       if(this.imgIndex != null && item) {
-        // const item = this.$refs.imgItem
-        console.log('item ', item)
 
         // reset styles
         if(this.disableZoom) {
@@ -957,9 +924,29 @@ export default {
         }
       }
     },
-
+    setAspectRatio() {
+      //
+    },
     // Aspect Ratio responsive video
     $_setAspectRatioVideo() {
+      this.$nextTick(() => {
+        const $el = this.$el.querySelector('.cool-lightbox-main')
+        const { width, height } = $el.getBoundingClientRect()
+        const ratio = 16 / 9
+        if ((width / height) > ratio) {
+          this.aspectRatioVideo = {
+            width: `${Math.floor(height * ratio)}px`,
+            height: `${Math.floor(height)}px`
+          }
+        } else {
+          this.aspectRatioVideo = {
+            width: `${Math.floor(width)}px`,
+            height: `${Math.floor(width / ratio)}px`
+          }
+        }
+      })
+
+      /* 
       const thisContext = this
       let el = this.$el.querySelector('.cool-lightbox-inner')
 
@@ -984,7 +971,7 @@ export default {
           thisContext.aspectRatioVideo.width = width+'px'
         }, 150)
 
-      }
+      } */
     },
 
     $_wheelEvent(event) {
@@ -1006,23 +993,23 @@ export default {
     },
 
     // set lightbox inner width
-    $_setLightboxInnerWidth() {
+    /* $_setLightboxInnerWidth() {
       let el = this.$el.querySelector('.cool-lightbox-inner');
       let width = el.clientWidth
       this.lightboxInnerWidth = width
-    },
+    }, */
 
     // x position on resize event
-    $_xPositionOnResize() {
+    /* $_xPositionOnResize() {
       this.$_setLightboxInnerWidth()
       const index = this.imgIndex
 
       // set x position
       this.xSwipeWrapper = -index*this.lightboxInnerWidth-30*index
-    },
+    }, */
 
     // set swipe animation
-    $_setSwipeAnimation() {
+    /* $_setSwipeAnimation() {
       const self = this
       clearInterval(this.swipeInterval)
       this.swipeAnimation = null
@@ -1034,18 +1021,20 @@ export default {
       function interval() {
         self.swipeAnimation = null
       }
-    },
+    }, */
 
     // caption size 
     $_addCaptionPadding() {
-      if(this.currentItem.title || this.currentItem.descripcion) {
-        const el = this.$el.querySelector('.cool-lightbox-caption');
-        if(el) {
-          this.paddingBottom = el.offsetHeight
-        } 
-      } else {
-        this.paddingBottom = 0
-      }
+      this.$nextTick(() => {
+        if(this.currentItem.title || this.currentItem.descripcion) {
+          const el = this.$el.querySelector('.cool-lightbox-caption');
+          if(el) {
+            this.paddingBottom = el.offsetHeight
+          } 
+        } else {
+          this.paddingBottom = 0
+        }
+      })
     },
     // =======================================================================================
     $_initial(index) {
@@ -1123,7 +1112,7 @@ export default {
       }
 
       // remove resize event
-      window.removeEventListener('resize', this.$_xPositionOnResize)
+      // window.removeEventListener('resize', this.$_xPositionOnResize)
       
       // remove wheel event
       if(this.enableWheelEvent) {
@@ -1147,7 +1136,7 @@ export default {
       ]
       // 如果点击元素包含 elements，则不关闭
       // 使用`event.currentTarget`，将检测区域缩到最小
-      if (!matchAllDom(event.target, elements, event.currentTarget)) {
+      if (!matchesDom(event.target, elements, event.currentTarget)) {
         this.close()
       }
     },
@@ -1162,7 +1151,7 @@ export default {
         this.stopSlideShow()
       }
 
-      this.$_setSwipeAnimation()
+      // this.$_setSwipeAnimation()
 
       this.changeIndexToNext()
     },
@@ -1177,7 +1166,7 @@ export default {
         this.stopSlideShow()
       }
       
-      this.$_setSwipeAnimation()
+      // this.$_setSwipeAnimation()
 
       this.changeIndexToPrev();
     },
@@ -1215,15 +1204,15 @@ export default {
       }, 400)
     },
     // check if the image is cached
-    $_is_cached(src) {
+    /* $_is_cached(src) {
       var image = new Image()
       image.src = src
       return image.complete
-    },
+    }, */
     // image loaded event
-    imageLoaded() {
+    /* imageLoaded() {
       this.imageLoading = false
-    },
+    }, */
     getItem(index) {
       try {
         const item = this.items[index]
@@ -1266,10 +1255,6 @@ export default {
         return src
       }
     },
-    getItemPictures(index) {
-      const item = this.getItem(index)
-      return Array.isArray(item.picture) ? item.picture : []
-    },
     getVideoUrl(index) {
       const item = this.getItem(index)
       if (item && this.checkIsVideo(index)) {
@@ -1306,11 +1291,12 @@ export default {
           return this.close()
       }
     },
-    iframeLoaded(e) {
-      console.log('iframe loaded', e)
+    changeLoading(val) {
+      console.log('change loading ', val)
+      this.imageLoading = val
     },
-    loadVideo(e) {
-      console.log('video loaded', e)
+    mediaLoaded(err, file) {
+      this.$_setAspectRatioVideo()
     }
   }
 }

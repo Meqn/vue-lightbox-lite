@@ -149,9 +149,9 @@ export function removeFullscreenListener(listener) {
  * @param {*} target 对比目标元素
  * @param {*} selector 选择器
  * @param {*} wrapper 选择器范围
- * @returns 
+ * @returns
  */
-export function matchAllDom(target, selector, wrapper) {
+export function matchesDom (target, selector, wrapper) {
   if (!(target instanceof Element)) return false
   if (!(wrapper instanceof Element)) {
     wrapper = document
@@ -166,4 +166,58 @@ export function matchAllDom(target, selector, wrapper) {
     if (matches[i] === target) return true
   }
   return false
+}
+
+export function loadImage(path, callback) {
+  let img = new Image()
+  img.onerror = function (error) {
+    callback && callback(error)
+    img.onerror = img = null
+  }
+  img.onload = function () {
+    callback && callback(null, img)
+    img.onload = img = null
+  }
+  img.src = path
+  if (img.complete) {
+    callback && callback(null, img)
+    img.onerror = img.onload = img = null
+  }
+  return img
+}
+
+export function loadVideo(src, callback) {
+  let $video = document.createElement('video')
+  $video.onerror = function (error) {
+    callback && callback(error)
+    $video.onerror = $video = null
+  }
+  $video.onloadeddata = function () {
+    // width: $video.videoWidth, height: $video.videoHeight
+    callback && callback(null, $video)
+    $video.onloadeddata = $video = null
+  }
+  $video.src = src
+  return $video
+}
+
+export function loadIframe(src, callback) {
+  let $iframe = document.createElement('iframe')
+  $iframe.onerror = function (error) {
+    callback && callback(error)
+    $iframe.onerror = $iframe = null
+  }
+  $iframe.onload = function () {
+    callback && callback(null, $iframe)
+    $iframe.onload = $iframe = null
+  }
+  $iframe.destroy = function() {
+    if ($iframe) {
+      document.body.removeChild($iframe)
+    }
+  }
+  $iframe.setAttribute('style', 'width:0;height:0;opacity:0')
+  $iframe.setAttribute('src', src)
+  document.body.appendChild($iframe)
+  return $iframe
 }
