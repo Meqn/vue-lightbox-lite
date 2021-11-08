@@ -247,6 +247,10 @@ export default {
       type: Array,
       required: true,
     },
+    container: {
+      type: [Element, String],
+      default: () => document.body
+    },
     loop: {
       type: Boolean,
       default: true,
@@ -316,13 +320,6 @@ export default {
 
       // use for mouse wheel
       prevTime: 0,
-
-      // swipe effect
-      xSwipeWrapper: 0,
-      ySwipeWrapper: 0,
-      swipeAnimation: null,
-      swipeInterval: null,
-      lightboxInnerWidth: null,
 
       // styles data
       isVisible: false,
@@ -444,30 +441,6 @@ export default {
         item.style.transform = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px) scale3d('+newZoom+', '+newZoom+', '+newZoom+')';
       }
     },
-    showThumbs(val) {
-      // let widthGalleryBlock = 212;
-      let swipeAnimation = 'all .3s ease'
-      /* if(window.innerWidth < 767) {
-        widthGalleryBlock = 102
-        swipeAnimation = null
-      }
-
-      if (this.thumbsPosition === 'bottom') {
-        widthGalleryBlock = 0;
-      } */
-
-      this.swipeAnimation = swipeAnimation
-      /* 
-      if(val) {
-        this.xSwipeWrapper = -this.imgIndex*(window.innerWidth - widthGalleryBlock) - 30*this.imgIndex
-      } else {
-        this.xSwipeWrapper = -this.imgIndex*window.innerWidth - 30*this.imgIndex
-      } */
-
-      setTimeout(() => {
-        this.swipeAnimation = null
-      }, 300)
-    },
     index(val, prev) {
       console.log('wathch index ', val, prev)
       // 加入`isVisible`判断，防止外界更改index后重新初始化
@@ -485,6 +458,7 @@ export default {
         // 切换预览
         if(val !== null) {
           const item = this.getItem(val)
+          // 重置loading
           this.changeLoading(false)
 
           if(val !== prev) {
@@ -506,7 +480,6 @@ export default {
           this.resetZoom()
           // reset swipe type
           this.swipeType = null
-          this.ySwipeWrapper = 0
 
         })
       }
@@ -608,10 +581,6 @@ export default {
         return false
       }
 
-      // clear interval
-      clearInterval(this.swipeInterval)
-      this.swipeAnimation = null
-
       // starts swipe
       this.isDraggingSwipe = true
       this.initialMouseX = this.$_getMouseXPosFromEvent(event)
@@ -640,16 +609,6 @@ export default {
             }
           }
         }
-        /* 
-        // swipe
-        if(this.swipeType == 'h') {
-          // swipe wrapper
-          this.xSwipeWrapper = -(windowWidth*this.imgIndex) + currentPosX - this.initialMouseX - 30*this.imgIndex
-
-        } else {
-          this.ySwipeWrapper = currentPosY - this.initialMouseY
-        }
-        */
         // mobile caseS
         if(event.type === 'touchmove') {
           this.endMouseX = this.$_getMouseXPosFromEvent(event);
@@ -693,9 +652,6 @@ export default {
         return;
       } 
       
-      // set swipe animation
-      // this.$_setSwipeAnimation()
-
       // reset swipe data
       setTimeout(function() {
         self.IsSwipping = false
@@ -724,15 +680,10 @@ export default {
         // diff Y
         if(diffY >= 90) {
           this.close()
-        } else {
-          this.ySwipeWrapper = 0
         }
       } 
       
       this.swipeType = null
-      /* const windowWidth = this.lightboxInnerWidth
-
-      this.xSwipeWrapper = -this.imgIndex*windowWidth - 30*this.imgIndex */
     },
 
     // function that return x position from event
@@ -945,33 +896,6 @@ export default {
           }
         }
       })
-
-      /* 
-      const thisContext = this
-      let el = this.$el.querySelector('.cool-lightbox-inner')
-
-      let computedStyle = getComputedStyle(el)
-      if(window.innerWidth < 1440) {
-
-        let width = el.clientWidth;
-        let height = Math.round((width/16)*9);
-
-        this.aspectRatioVideo.height = height+'px'
-        this.aspectRatioVideo.width = width+'px'
-
-      } else {
-        
-        setTimeout(function() {
-          let height = el.clientHeight;
-          height -= parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
-
-          let width = (height/9)*16
-
-          thisContext.aspectRatioVideo.height = height+'px'
-          thisContext.aspectRatioVideo.width = width+'px'
-        }, 150)
-
-      } */
     },
 
     $_wheelEvent(event) {
@@ -991,38 +915,6 @@ export default {
           return this.changeIndexToNext();
       }
     },
-
-    // set lightbox inner width
-    /* $_setLightboxInnerWidth() {
-      let el = this.$el.querySelector('.cool-lightbox-inner');
-      let width = el.clientWidth
-      this.lightboxInnerWidth = width
-    }, */
-
-    // x position on resize event
-    /* $_xPositionOnResize() {
-      this.$_setLightboxInnerWidth()
-      const index = this.imgIndex
-
-      // set x position
-      this.xSwipeWrapper = -index*this.lightboxInnerWidth-30*index
-    }, */
-
-    // set swipe animation
-    /* $_setSwipeAnimation() {
-      const self = this
-      clearInterval(this.swipeInterval)
-      this.swipeAnimation = null
-
-      // animation swipe
-      this.swipeAnimation = 'all .3s ease';
-      this.swipeInterval = setInterval(interval, 330);
-
-      function interval() {
-        self.swipeAnimation = null
-      }
-    }, */
-
     // caption size 
     $_addCaptionPadding() {
       this.$nextTick(() => {
@@ -1041,7 +933,6 @@ export default {
       // swipe type
       this.swipeType = null
       this.initialMouseY = 0
-      this.ySwipeWrapper = 0
 
       this.isVisible = true
       this.imgIndex = index
@@ -1093,11 +984,6 @@ export default {
       this.initialMouseY = 0
       // reset swipe type
       this.swipeType = null
-      this.ySwipeWrapper = 0
-
-      // clear interval
-      clearInterval(this.swipeInterval)
-      this.swipeAnimation = null
 
       // finish swipe
       this.isDraggingSwipe = false
@@ -1151,8 +1037,6 @@ export default {
         this.stopSlideShow()
       }
 
-      // this.$_setSwipeAnimation()
-
       this.changeIndexToNext()
     },
 
@@ -1165,8 +1049,6 @@ export default {
       if(!isFromSlideshow) {
         this.stopSlideShow()
       }
-      
-      // this.$_setSwipeAnimation()
 
       this.changeIndexToPrev();
     },

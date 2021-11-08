@@ -1,7 +1,7 @@
 import { loadImage, loadIframe, loadVideo } from '../utils'
 
 export default {
-  inserted(el, { arg }, vnode) {
+  inserted (el, { arg }, vnode) {
     const ctx = vnode.context
     const { src } = el.dataset
 
@@ -13,7 +13,7 @@ export default {
     }
 
     if (arg && loadMethods[arg]) {
-      const $el = loadMethods[arg](src, function(err, result) {
+      const $el = loadMethods[arg](src, function (err, result) {
         try {
           ctx.changeLoading(false)
           if (arg !== 'video') el.src = src
@@ -26,9 +26,8 @@ export default {
       el.__vm_el__ = $el
     }
   },
-  unbind(el, { arg }) {
+  unbind (el) {
     // 存在改元素，则删除
-    console.log('unbind : ', el)
     const $el = el.__vm_el__
     if ($el && $el.destroy) $el.destroy()
   }

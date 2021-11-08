@@ -3,13 +3,13 @@ const vimeoRegx = /(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\
 
 export const isNumber = arg => !isNaN(parseFloat(arg)) && isFinite(arg)
 
-export function isObject(arg) {
+export function isObject (arg) {
   return arg !== null && typeof arg === 'object'
 }
 
 export const randomStr = () => Math.floor(Math.random() * Date.now()).toString(36)
 
-export function isMp4(url) {
+export function isMp4 (url) {
   if (url && typeof url === 'string') {
     const suffix = fileSuffix(url)
     return ['mp4', 'mov', 'webm', 'ogg', 'avi'].includes(suffix)
@@ -17,25 +17,25 @@ export function isMp4(url) {
   return false
 }
 
-export function isYoutube(url) {
+export function isYoutube (url) {
   if (url && typeof url === 'string') {
     return youtubeRegx.test(url)
   }
   return false
 }
 
-export function isVimeo(url) {
+export function isVimeo (url) {
   if (url && typeof url === 'string') {
     return vimeoRegx.test(url)
   }
   return false
 }
 
-export function isVideo(url) {
+export function isVideo (url) {
   return isMp4(url) || isYoutube(url) || isVimeo(url)
 }
 
-export function getYoutubeID(url) {
+export function getYoutubeID (url) {
   if (url && typeof url === 'string') {
     const result = url.match(youtubeRegx)
     return result && result.length > 1 ? result[1] : null
@@ -43,7 +43,7 @@ export function getYoutubeID(url) {
   return null
 }
 
-export function getYoutubeUrl(url, youtubeCookies = true) {
+export function getYoutubeUrl (url, youtubeCookies = true) {
   const ytId = getYoutubeID(url)
   if (ytId) {
     // check if allows youtube cookies
@@ -55,7 +55,7 @@ export function getYoutubeUrl(url, youtubeCookies = true) {
   return null
 }
 
-export function getYoutubeThumb(url) {
+export function getYoutubeThumb (url) {
   const ytId = getYoutubeID(url)
   if (ytId) {
     return 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg'
@@ -63,7 +63,7 @@ export function getYoutubeThumb(url) {
   return null
 }
 
-export function getVimeoID(url) {
+export function getVimeoID (url) {
   if (url && typeof url === 'string') {
     const result = url.match(vimeoRegx)
     return result && result.length > 1 ? result[1] : null
@@ -71,7 +71,7 @@ export function getVimeoID(url) {
   return null
 }
 
-export function getVimeoUrl(url) {
+export function getVimeoUrl (url) {
   const vimeoID = getVimeoID(url)
   if (vimeoID) {
     return '//player.vimeo.com/video/' + vimeoID + '?hd=1&show_title=1&show_byline=1&show_portrait=0&fullscreen=1'
@@ -95,16 +95,16 @@ export function fileSuffix (fileSrc) {
  * @param {String} src 文件源
  * @returns 
  */
-export function videoSourceType(src, { ext }) {
+export function videoSourceType (src, { ext }) {
   const _ext = ext || fileSuffix(src)
   return _ext ? `video/${_ext}` : ''
 }
 
-export function closeFullscreen() {
+export function closeFullscreen () {
   if (document.exitFullscreen) {
     document.exitFullscreen()
   } else if (document.webkitCancelFullScreen) {
-    document.webkitCancelFullScreen();
+    document.webkitCancelFullScreen()
   } else if (document.mozCancelFullScreen) {
     document.mozCancelFullScreen()
   } else if (document.msExitFullscreen) {
@@ -112,7 +112,7 @@ export function closeFullscreen() {
   }
 }
 
-export function fullScreenMode() {
+export function fullScreenMode () {
   const el = document.documentElement
   if (el.requestFullscreen) {
     el.requestFullscreen()
@@ -131,13 +131,13 @@ export function fullScreenMode() {
   return false
 }
 
-export function addFullscreenListener(listener) {
+export function addFullscreenListener (listener) {
   document.addEventListener('fullscreenchange', listener)
   document.addEventListener('webkitfullscreenchange', listener)
   document.addEventListener('mozfullscreenchange', listener)
   document.addEventListener('msfullscreenchange', listener)
 }
-export function removeFullscreenListener(listener) {
+export function removeFullscreenListener (listener) {
   document.removeEventListener('fullscreenchange', listener)
   document.removeEventListener('webkitfullscreenchange', listener)
   document.removeEventListener('mozfullscreenchange', listener)
@@ -168,7 +168,7 @@ export function matchesDom (target, selector, wrapper) {
   return false
 }
 
-export function loadImage(path, callback) {
+export function loadImage (path, callback) {
   let img = new Image()
   img.onerror = function (error) {
     callback && callback(error)
@@ -186,38 +186,38 @@ export function loadImage(path, callback) {
   return img
 }
 
-export function loadVideo(src, callback) {
-  let $video = document.createElement('video')
-  $video.onerror = function (error) {
+export function loadVideo (src, callback) {
+  let video = document.createElement('video')
+  video.onerror = function (error) {
     callback && callback(error)
-    $video.onerror = $video = null
+    video.onerror = video = null
   }
-  $video.onloadeddata = function () {
-    // width: $video.videoWidth, height: $video.videoHeight
-    callback && callback(null, $video)
-    $video.onloadeddata = $video = null
+  video.onloadeddata = function () {
+    // width: video.videoWidth, height: video.videoHeight
+    callback && callback(null, video)
+    video.onloadeddata = video = null
   }
-  $video.src = src
-  return $video
+  video.src = src
+  return video
 }
 
-export function loadIframe(src, callback) {
-  let $iframe = document.createElement('iframe')
-  $iframe.onerror = function (error) {
+export function loadIframe (src, callback) {
+  let iframe = document.createElement('iframe')
+  iframe.onerror = function (error) {
     callback && callback(error)
-    $iframe.onerror = $iframe = null
+    iframe.onerror = iframe = null
   }
-  $iframe.onload = function () {
-    callback && callback(null, $iframe)
-    $iframe.onload = $iframe = null
+  iframe.onload = function () {
+    callback && callback(null, iframe)
+    iframe.onload = iframe = null
   }
-  $iframe.destroy = function() {
-    if ($iframe) {
-      document.body.removeChild($iframe)
+  iframe.destroy = function () {
+    if (iframe) {
+      document.body.removeChild(iframe)
     }
   }
-  $iframe.setAttribute('style', 'width:0;height:0;opacity:0')
-  $iframe.setAttribute('src', src)
-  document.body.appendChild($iframe)
-  return $iframe
+  iframe.setAttribute('style', 'width:0;height:0;opacity:0')
+  iframe.setAttribute('src', src)
+  document.body.appendChild(iframe)
+  return iframe
 }
