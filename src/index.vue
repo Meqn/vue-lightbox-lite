@@ -2,8 +2,8 @@
 <transition name="cool-lightbox-modal">
   <div
     v-if="isVisible"
-    class="cool-lightbox"
-    :class="lightboxClasses"
+    :id="viewerId"
+    :class="['cool-lightbox', ...lightboxClasses]"
     :style="lightboxStyles">
     <div class="cool-lightbox-mask" :style="maskStyles"></div>
     <!-- 缩略图列表 -->
@@ -42,11 +42,11 @@
       <!-- 将点击关闭、滑动等事件绑定在该元素上, click 和 touch不能共存 -->
       <div
         class="cool-lightbox-main"
-        @mousedown.stop="startSwipe"
-        @mousemove.stop="continueSwipe"
-        @mouseup.stop="endSwipe"
+        @mousedown.prevent.stop="startSwipe"
+        @mousemove.prevent.stop="continueSwipe"
+        @mouseup.prevent.stop="endSwipe"
         @touchstart.prevent.stop="startSwipe"
-        @touchmove.stop="continueSwipe"
+        @touchmove.prevent.stop="continueSwipe"
         @touchend.prevent.stop="endSwipe"
         @click.stop="closeModal">
         <div ref="items" class="cool-lightbox-slide">
@@ -58,13 +58,12 @@
                 :srcset="currentItem.srcset"
                 :sizes="currentItem.sizes"
                 :key="imgIndex"
-                draggable="false"
                 :alt="currentItem.alt"
-
+                draggable="false"
                 @click.stop="zoomImage"
-                @mousedown.stop="handleMouseDown($event)"
-                @mouseup.stop="handleMouseUp($event)"
-                @mousemove.stop="handleMouseMove($event)"
+                @mousedown="handleMouseDown($event)"
+                @mouseup="handleMouseUp($event)"
+                @mousemove="handleMouseMove($event)"
               />
             </transition>
           </div>
@@ -99,9 +98,10 @@
                 v-load:video
                 :data-src="currentItem.src"
                 :key="currentItem.src"
-                controls=""
+                playsinline
+                controls
                 controlslist="nodownload">
-                <source :src="currentItem.src" :type="videoSourceType(imgIndex)">
+                <source :src="currentItem.src" :type="videoSourceType">
                 Sorry, your browser doesn't support embedded videos
               </video>
             </transition>
@@ -210,7 +210,6 @@ import './index.scss'
 /* eslint-disable */
 import AutoplayVideo from "./directives/autoplay"
 import LoadMedia from './directives/load'
-import { disableBodyScroll, enableBodyScroll } from 'body-scroll-lock'
 import Icon from './Icon.vue'
 import {
   fullScreenMode,
@@ -221,14 +220,13 @@ import {
   randomStr,
   isObject,
   isNumber,
+  getMediaType,
+  getMediaThumb,
+  getVideoUrl,
   isMp4,
   isVideo,
   isYoutube,
   isVimeo,
-  getVimeoUrl,
-  getYoutubeUrl,
-  getYoutubeThumb,
-  fileSuffix,
   videoSourceType
 } from './utils'
 
@@ -356,19 +354,28 @@ export default {
         'display': 'block'
       },
       // id
-      viewerStyleId: 'cool-style-' + randomStr()
+      viewerId: 'viewer-' + randomStr()
     };
   },
   computed: {
     // get item
     currentItem() {
-      const item = this.getItem(this.imgIndex)
+      const index = this.imgIndex
+      const item = this.getItem(index)
       if (item) {
-        const videoSrc = this.getVideoUrl(this.imgIndex)
-        videoSrc && (item.src = videoSrc)
+        if (this.checkIsVideo(index)) {
+          item.src = getVideoUrl(item.src, { youtubeCookies: this.youtubeCookies })
+        }
         return item
       }
       return null
+    },
+    videoSourceType() {
+      if (this.currentItem) {
+        const { src, ext } = this.currentItem
+        return videoSourceType(src, { ext })
+      }
+      return ''
     },
     // Images wrapper styles to use drag and zoom
     imgWrapperStyle() {
@@ -431,6 +438,20 @@ export default {
     // check if the slide has previous element 
     hasPrevious() {
       return (this.imgIndex - 1 >= 0)
+    },
+    $root: {
+      get() {
+        const { container } = this
+        if (container instanceof HTMLElement) {
+          return container
+        } else if (typeof container === 'string') {
+          const _container = document.querySelector(container)
+          return _container || null
+        }
+        return null
+      },
+      // Computed property "$root" was assigned to but it has no setter
+      set() {}
     }
   },
   watch: {
@@ -486,19 +507,26 @@ export default {
     }, 
   },
   mounted() {
-    // document.body.appendChild(this.$el)
+    if (!this.$root) {
+      throw Error('container is not valid HTMLElement!')
+    }
+    // Insert $el
+    this.$root.appendChild(this.$el)
+
     if (isNumber(this.index)) {
       this.$_initial(this.index)
+
+      addFullscreenListener.call(this, this.fullScreenListener)
+      this.$once('hook:beforeDestroy', removeFullscreenListener.bind(this, this.fullScreenListener))
     }
-    addFullscreenListener.call(this, this.fullScreenListener)
-    // this.$on('hook:beforeDestroy', removeFullscreenListener.bind(this, this.fullScreenListener))
   },
   beforeDestroy () {
     if (this.enableScrollLock) {
-      this.$_removeCompensateForScrollbar()
-      enableBodyScroll(this.$el)
+      this.$_disableBodyLock()
     }
-    removeFullscreenListener.call(this, this.fullScreenListener)
+    // remove lightbox element
+    this.$root.removeChild(this.$el)
+    this.$root = null
   },
 
   methods: {
@@ -523,30 +551,24 @@ export default {
         }
       })
     },
-    /* setAutoplay(index) {
-      const item = this.getItem(index)
-      return item && item.autoplay
-    }, */
-    /**
-     * 🚨 待清除，用 overflow: hidden 代替
-     */
-    $_removeCompensateForScrollbar() {
-      document.body.classList.remove('compensate-for-scrollbar')
-      const noscrollStyle = document.getElementById(this.viewerStyleId)
-      if (noscrollStyle !== null) {
-        noscrollStyle.remove()
-      }
-    },
-    $_setCompensateForScrollbar() {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    $_enableBodyLock() {
+      /* const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       if (!isMobile && (document.body.scrollHeight > window.innerHeight)) {
         document.getElementsByTagName('head')[0].insertAdjacentHTML('beforeend', `
-          <style id="${this.viewerStyleId}" type="text/css">
+          <style id="${viewerId}" type="text/css">
           .compensate-for-scrollbar{margin-right: ${window.innerWidth - document.documentElement.clientWidth}px}
           </style>
         `)
         document.body.classList.add('compensate-for-scrollbar')
-      }
+      } */
+      document.body.classList.add('compensate-for-scrollbar')
+    },
+    $_disableBodyLock() {
+      document.body.classList.remove('compensate-for-scrollbar')
+      /* const noscrollStyle = document.getElementById(t)
+      if (noscrollStyle !== null) {
+        noscrollStyle.remove()
+      } */
     },
     toggleFullScreenMode() {
       if(this.isFullScreenMode) {
@@ -941,21 +963,18 @@ export default {
       this.loopData = this.loop
       
       // add events listener
-      window.addEventListener('keydown', this.eventListener)
+      window.addEventListener('keydown', this.$_eventListener)
 
       // add wheel event
       if(this.enableWheelEvent) {
         window.addEventListener('wheel', this.$_wheelEvent)
       }
-
-      if (this.enableScrollLock) {
-        setTimeout(() => {
-          this.$_setCompensateForScrollbar()
-          disableBodyScroll(this.$el)
-        }, 50)
-      }
-
       setTimeout(() => {
+        if (this.enableScrollLock) {
+          // lock body
+          this.$_enableBodyLock()
+        }
+
         this.$emit('open', this.imgIndex)
       }, 5)
     },
@@ -990,16 +1009,11 @@ export default {
       this.isZooming = true
 
       // remove events listener
-      window.removeEventListener('keydown', this.eventListener)
-
+      window.removeEventListener('keydown', this.$_eventListener)
+      // remove body locked
       if (this.enableScrollLock) {
-        this.$_removeCompensateForScrollbar()
-        enableBodyScroll(this.$el)
+        this.$_disableBodyLock()
       }
-
-      // remove resize event
-      // window.removeEventListener('resize', this.$_xPositionOnResize)
-      
       // remove wheel event
       if(this.enableWheelEvent) {
         window.removeEventListener('wheel', this.$_wheelEvent)
@@ -1085,16 +1099,6 @@ export default {
         this.$emit('change-end', index)
       }, 400)
     },
-    // check if the image is cached
-    /* $_is_cached(src) {
-      var image = new Image()
-      image.src = src
-      return image.complete
-    }, */
-    // image loaded event
-    /* imageLoaded() {
-      this.imageLoading = false
-    }, */
     getItem(index) {
       try {
         const item = this.items[index]
@@ -1115,51 +1119,16 @@ export default {
     getMediaType(index) {
       const item = this.getItem(index)
       const { mediaType, src } = item
-      if (mediaType) return mediaType
-
-      if (isYoutube(src) || isVimeo(src)) return 'webVideo'
-      if (isMp4(src)) return 'video'
-
-      const iframeTpye = ['pdf']
-      if (iframeTpye.includes(fileSuffix(src))) return 'iframe'
-
-      return 'image'
+      return getMediaType(src, mediaType)
     },
     // get item thumbnail
     getItemThumb(index) {
       const item = this.getItem(index)
       const { src, thumb } = item
-      if (thumb) {
-        return thumb
-      } else if (isYoutube(src)) {
-        return getYoutubeThumb(src) || src
-      } else {
-        return src
-      }
+      return getMediaThumb(src, thumb)
     },
-    getVideoUrl(index) {
-      const item = this.getItem(index)
-      if (item && this.checkIsVideo(index)) {
-        const { src } = item
-
-        const youtubeUrl = getYoutubeUrl(src, this.youtubeCookies)
-        if (youtubeUrl) return youtubeUrl
-        
-        const vimeoUrl = getVimeoUrl(src)
-        if (vimeoUrl) return vimeoUrl
-
-        return src
-      }
-      return null
-    },
-    // if is video get extension
-    videoSourceType(index) {
-      const { src, ext } = this.getItem(index)
-      return videoSourceType(src, { ext })
-    },
-
     // arrows and escape events
-    eventListener(e) {
+    $_eventListener(e) {
       switch (e.keyCode) {
         case 39:
           return this.next()
@@ -1174,7 +1143,6 @@ export default {
       }
     },
     changeLoading(val) {
-      console.log('change loading ', val)
       this.imageLoading = val
     },
     mediaLoaded(err, file) {
