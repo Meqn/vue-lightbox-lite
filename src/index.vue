@@ -7,25 +7,14 @@
     :style="lightboxStyles">
     <div class="cool-lightbox-mask" :style="maskStyles"></div>
     <!-- 缩略图列表 -->
-    <div v-if="gallery" class="cool-lightbox-thumbs">
+    <div v-if="toolbarList.includes('gallery') && items.length > 1" class="cool-lightbox-thumbs">
       <div class="cool-lightbox-thumbs__list">
-        <button
-          type="button"
-          v-for="(item, itemIndex) in items"
+        <i v-for="(item, itemIndex) in items"
           :key="itemIndex"
-          :class="{
-            active: itemIndex === imgIndex,
-            'is-video': checkIsVideo(itemIndex)
-          }"
-          @click="imgIndex = itemIndex"
-          class="cool-lightbox__thumb">
-
-          <svg v-if="checkIsVideo(itemIndex)" class="cool-lightbox__thumb__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M6.5 5.4v13.2l11-6.6z"></path>
-          </svg>
-
-          <img :src="getItemThumb(itemIndex)" alt="" />
-        </button>
+          :class="['cool-lightbox__thumb', { active: itemIndex === imgIndex }, { 'is-video': $_checkIsVideo(itemIndex) }]"
+          @click="imgIndex = itemIndex">
+          <img :src="getItemThumb(itemIndex)" loading="lazy" alt="" />
+        </i>
       </div>
     </div>
     <!--/cool-lightbox-thumbs-->
@@ -50,7 +39,7 @@
         @touchend.prevent.stop="endSwipe"
         @click.stop="closeModal">
         <div ref="items" class="cool-lightbox-slide">
-          <div v-if="getMediaType(imgIndex) === 'image'" ref="imgItem" key="image" :style="imgWrapperStyle" class="cool-lightbox-image">
+          <div v-if="currentItem.mediaType === 'image'" ref="imgItem" key="image" :style="imgWrapperStyle" class="cool-lightbox-image">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <img
                 v-load:image
@@ -68,7 +57,7 @@
             </transition>
           </div>
           <!--/imgs-slide-->
-          <div v-else-if="getMediaType(imgIndex) === 'iframe'" ref="iframeItem" key="iframe" class="cool-lightbox-iframe">
+          <div v-else-if="currentItem.mediaType === 'iframe'" ref="iframeItem" key="iframe" class="cool-lightbox-iframe">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
                 v-load:iframe
@@ -83,7 +72,7 @@
           <div v-else ref="videoItem" key="video" class="cool-lightbox-video" :style="aspectRatioVideo">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
-                v-if="getMediaType(imgIndex) === 'webVideo'"
+                v-if="currentItem.mediaType === 'webVideo'"
                 class="js-video"
                 v-load:webVideo
                 :data-src="currentItem.src"
@@ -116,9 +105,9 @@
       <div class="cool-lightbox-progressbar" :style="stylesInterval"></div>
 
       <!-- 导航 prev/next -->
-      <template v-if="toolbar.includes('navigator')">
+      <template v-if="navigator && items.length > 1">
         <div
-          v-show="(hasPreviousButton || loopData) && items.length > 1"
+          v-show="hasPreviousButton || loopData"
           class="cool-lightbox-navigation is-prev"
           :class="buttonsClasses"
           title="Previous"
@@ -126,7 +115,7 @@
           <slot name="icon-previous"><Icon name="arrow-left" /></slot>
         </div>
         <div
-          v-show="(hasNextButton || loopData) && items.length > 1"
+          v-show="hasNextButton || loopData"
           class="cool-lightbox-navigation is-next"
           :class="buttonsClasses"
           title="Next"
@@ -137,28 +126,36 @@
       <!--/cool-lightbox__navigation-->
 
       <!-- 工具栏 -->
-      <div class="cool-lightbox-toolbar" :class="buttonsClasses">
-        <div class="cool-lightbox-toolbar__counter">{{ imgIndex + 1 }} / {{ items.length }}</div>
+      <div v-if="toolbarList.length > 0" class="cool-lightbox-toolbar" :class="buttonsClasses">
+        <div class="cool-lightbox-toolbar__left">
+          <span class="cool-lightbox-toolbar__counter" v-if="toolbarList.includes('counter')">{{ imgIndex + 1 }} / {{ items.length }}</span>
+        </div>
         <div class="cool-lightbox-toolbar__buttons">
-          <i v-if="this.slideshow && items.length > 1" title="Play slideshow" class="icon-btn" @click.stop="toggleSlide">
+          <i v-if="toolbarList.includes('slide') && items.length > 1" title="Play slideshow" class="icon-btn" @click.stop="toggleSlide">
             <Icon :name="!isPlayingSlideShow ? 'play' : 'pause'" />
           </i>
-          <i title="rotate-left" class="icon-btn" @click.stop="onRotate('left')">
-            <Icon name="rotate-left" />
-          </i>
-          <i title="rotate-right" class="icon-btn" @click.stop="onRotate('right')">
-            <Icon name="rotate-right" />
-          </i>
-          <i v-if="gallery && items.length > 1" @click.stop="showThumbs = !showThumbs" title="Show thumbnails" class="icon-btn">
+          <template v-if="toolbarList.includes('rotate')">
+            <i title="rotate-left" class="icon-btn" @click.stop="onRotate('left')">
+              <Icon name="rotate-left" />
+            </i>
+            <i title="rotate-right" class="icon-btn" @click.stop="onRotate('right')">
+              <Icon name="rotate-right" />
+            </i>
+          </template>
+          <i v-if="toolbarList.includes('gallery') && items.length > 1" @click.stop="showThumbs = !showThumbs" title="Show thumbnails" class="icon-btn">
             <Icon name="grid" />
           </i>
-          <i v-if="fullScreen" @click.stop="toggleFullScreenMode" class="icon-btn" title="Fullscreen">
+          <i v-if="toolbarList.includes('fullscreen')" @click.stop="toggleFullScreenMode" class="icon-btn" title="Fullscreen">
             <Icon :name="isFullScreenMode ? 'offscreen' : 'fullscreen'" />
           </i>
-          <i v-if="download" class="icon-btn" title="download" @click.stop="onDownload">
+          <i
+            v-if="toolbarList.includes('download')"
+            class="icon-btn"
+            title="download"
+            @click.stop="onDownload">
             <Icon name="download" />
           </i>
-          <i v-if="showClose" class="icon-btn" title="Close" @click.stop="close">
+          <i v-if="toolbarList.includes('close')" class="icon-btn" title="Close" @click.stop="close">
             <Icon name="close" />
           </i>
         </div>
@@ -178,27 +175,17 @@
         </div>
         <!--/cool-lightbox-caption-->
       </transition>
+
+      <!-- 缩放区域 -->
+      <transition name="cool-lightbox-modal">
+        <div v-if="isZooming && useZoomBar" class="cool-lightbox-zoom">
+          <Icon name="minus" class="cool-lightbox-zoom__icon" />
+          <input type="range" v-model="zoomBar" name="points" min="0" max="50" />
+          <Icon name="plus" class="cool-lightbox-zoom__icon" />
+        </div>
+      </transition>
     </div>
     <!--/cool-lightbox-inner-->
-    <!-- 缩放区域 -->
-    <transition name="cool-lightbox-modal">
-      <div v-if="isZooming && useZoomBar" class="cool-lightbox-zoom">
-        <svg height="469pt" class="cool-lightbox-zoom__icon" viewBox="0 -192 469.33333 469" width="469pt" 
-          xmlns="http://www.w3.org/2000/svg"><path d="m437.332031.167969h-405.332031c-17.664062 
-          0-32 14.335937-32 32v21.332031c0 17.664062 14.335938 32 32 32h405.332031c17.664063 0 32-14.335938 
-          32-32v-21.332031c0-17.664063-14.335937-32-32-32zm0 0" fill="currentColor" />
-        </svg>
-        <input type="range" v-model="zoomBar" name="points" min="0" max="50" />
-        <svg height="426.66667pt" class="cool-lightbox-zoom__icon" viewBox="0 0 426.66667 426.66667" width="426.66667pt" xmlns="http://www.w3.org/2000/svg">
-          <path d="m405.332031 192h-170.664062v-170.667969c0-11.773437-9.558594-21.332031-21.335938-21.332031-11.773437 0-21.332031 
-          9.558594-21.332031 21.332031v170.667969h-170.667969c-11.773437 0-21.332031 9.558594-21.332031 21.332031 0 
-          11.777344 9.558594 21.335938 21.332031 21.335938h170.667969v170.664062c0 11.777344 9.558594 21.335938 21.332031 
-          21.335938 11.777344 0 21.335938-9.558594 21.335938-21.335938v-170.664062h170.664062c11.777344 0 21.335938-9.558594 
-          21.335938-21.335938 0-11.773437-9.558594-21.332031-21.335938-21.332031zm0 0" fill="currentColor" />
-        </svg>
-      </div>
-    </transition>
-
   </div>
   <!--/cool-lightbox-->
 </transition>
@@ -249,11 +236,13 @@ export default {
       type: [Element, String],
       default: () => document.body
     },
-    loop: {
+    // 导航器
+    navigator: {
       type: Boolean,
-      default: true,
+      default: true
     },
-    slideshow: {
+    toolbar: Array,
+    loop: {
       type: Boolean,
       default: true,
     },
@@ -265,44 +254,37 @@ export default {
       type: Number,
       default: 3500,
     },
+    disableZoom: Boolean,
     useZoomBar: Boolean,
-    overlayColor: {
-      type: String,
-      default: 'rgba(30, 30, 30, .9)'
-    },
     zIndex: {
       type: Number,
       default: 9999,
     },
-    gallery: Boolean,
-    fullScreen: Boolean,
-    download: Boolean,
-    showClose: {
-      type: Boolean,
-      default: true,
+    theme: {
+      type: String,
+      default: 'dark'
     },
-    thumbsPosition: {
+    overlayColor: String,
+    showGallery: Boolean,
+    galleryPosition: {
       type: String,
       validtor(val) {
         return ['right', 'bottom'].includes(val)
-      },
-      default: 'right',
+      }
     },
     youtubeCookies: {
       type: Boolean,
       default: true,
     },
     enableWheelEvent: Boolean,
-    disableZoom: Boolean,
     enableScrollLock: {
       type: Boolean,
       default: true,
     },
     // 点击关闭
-    clickOutsideHide: Boolean,
-    toolbar: {
-      type: Array,
-      default: () => ['navigator', 'slide', 'close', 'counter', 'rotate']
+    clickOutsideHide: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
@@ -324,7 +306,7 @@ export default {
       imgIndex: this.index,
       paddingBottom: false,
       imageLoading: false,
-      showThumbs: false,
+      showThumbs: !!this.showGallery,
       isFullScreenMode: false,
 
       // aspect ratio videos
@@ -343,7 +325,7 @@ export default {
       isDraging: false,
       canZoom: true,
       isZooming: false,
-      transition: 'all .3s ease',
+      imgTransition: 'all .3s ease',
       zoomBar: 0,
 
       // slideshow playing data
@@ -361,11 +343,15 @@ export default {
     // get item
     currentItem() {
       const index = this.imgIndex
-      const item = this.getItem(index)
+      const item = this.$_getItem(index)
       if (item) {
-        if (this.checkIsVideo(index)) {
+        const { mediaType, src } = item
+        item.mediaType = getMediaType(src, mediaType)
+
+        if (['webVideo', 'video'].includes(item.mediaType)) {
           item.src = getVideoUrl(item.src, { youtubeCookies: this.youtubeCookies })
         }
+
         return item
       }
       return null
@@ -382,7 +368,7 @@ export default {
       return {
         top: '50%',
         left: '50%',
-        transition: this.transition,
+        transition: this.imgTransition,
       }
     },
     // lightbox styles
@@ -406,13 +392,17 @@ export default {
     // Lightbox classes
     lightboxClasses() {
       let classesReturn = [
-        { 'cool-lightbox--can-zoom': this.canZoom && !this.disableZoom },
-        { 'cool-lightbox--zoom-disabled': this.disableZoom},
-        { 'cool-lightbox--is-zooming': this.isZooming },
-        { 'cool-lightbox--show-thumbs': this.showThumbs },
-        { 'cool-lightbox--is-swipping': this.isDraggingSwipe }
+        { 'is-can-zoom': this.canZoom && !this.disableZoom },
+        { 'is-zoom-disabled': this.disableZoom},
+        { 'is-zooming': this.isZooming },
+        { 'is-thumbs-show': this.showThumbs },
+        { 'is-swipping': this.isDraggingSwipe },
+        { 'theme-light': this.theme === 'light' }
       ]
-      let classString = 'cool-lightbox--thumbs-' + this.thumbsPosition
+
+      const { clientWidth, clientHeight } = document.body || document.documentElement
+      const galleryPosition = this.galleryPosition ? this.galleryPosition : clientHeight > clientWidth ? 'bottom' : 'right'
+      let classString = 'cool-lightbox--thumbs-' + galleryPosition
       classesReturn.push(classString)
 
       return classesReturn
@@ -452,6 +442,19 @@ export default {
       },
       // Computed property "$root" was assigned to but it has no setter
       set() {}
+    },
+    toolbarList() {
+      const { toolbar, currentItem, items } = this
+      if (toolbar) return toolbar
+      if (items.length === 1) {
+        if (['image', 'video'].includes(currentItem.mediaType)) {
+          return ['rotate', 'close']
+        } else {
+          return ['close']
+        }
+      } else {
+        return ['counter', 'slide', 'rotate', 'gallery', 'fullscreen', 'download', 'close']
+      }
     }
   },
   watch: {
@@ -478,7 +481,7 @@ export default {
         }
         // 切换预览
         if(val !== null) {
-          const item = this.getItem(val)
+          const item = this.$_getItem(val)
           // 重置loading
           this.changeLoading(false)
 
@@ -579,6 +582,9 @@ export default {
     },
     fullScreenListener() {
       this.isFullScreenMode = !this.isFullScreenMode
+    },
+    onDownload() {
+      console.log('download')
     },
     // check if event is arrow button or toolbar button
     $_checkOutOfSwipe(event) {
@@ -726,7 +732,7 @@ export default {
 
     // toggle play slideshow event
     toggleSlide() {
-      if(!this.slideshow) {
+      if(!this.toolbarList.includes('slide')) {
         return false
       }
 
@@ -861,7 +867,7 @@ export default {
         this.buttonsVisible = false
         // fix drag transition problems
         setTimeout(() => {
-          this.transition = 'all .0s ease'
+          this.imgTransition = 'all .0s ease'
         }, 100)
       } else {
         // show buttons 
@@ -878,24 +884,26 @@ export default {
       this.zoomBar = 0
       this.isZooming = false
       this.swipeType = null
-      this.transition = 'all .3s ease'
+      this.imgTransition = 'all .3s ease'
+      // this.$nextTick to fix imageZoom transition problems
+      this.$nextTick(() => {
+        // only if index is not null
+        const item = this.$refs.imgItem
+        if(this.imgIndex != null && item) {
 
-      // only if index is not null
-      const item = this.$refs.imgItem
-      if(this.imgIndex != null && item) {
+          // reset styles
+          if(this.disableZoom) {
+            item.style.transform  = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px)';
+          } else {
+            item.style.transform  = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px) scale3d(1, 1, 1)';
+          }
 
-        // reset styles
-        if(this.disableZoom) {
-          item.style.transform  = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px)';
-        } else {
-          item.style.transform  = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px) scale3d(1, 1, 1)';
+          this.initialMouseX = 0
+          if(window.innerWidth >= 700) {
+            this.buttonsVisible = true
+          }
         }
-
-        this.initialMouseX = 0
-        if(window.innerWidth >= 700) {
-          this.buttonsVisible = true
-        }
-      }
+      })
     },
     setAspectRatio() {
       //
@@ -1099,7 +1107,7 @@ export default {
         this.$emit('change-end', index)
       }, 400)
     },
-    getItem(index) {
+    $_getItem(index) {
       try {
         const item = this.items[index]
         if (item) {
@@ -1110,20 +1118,20 @@ export default {
         return {}
       }
     },
-    checkIsVideo(index) {
-      const item = this.getItem(index)
+    $_checkIsVideo(index) {
+      const item = this.$_getItem(index)
       const { mediaType, src } = item
       return mediaType ? ['video', 'webVideo'].includes(mediaType) : isVideo(src)
     },
     // get item media type
     getMediaType(index) {
-      const item = this.getItem(index)
+      const item = this.$_getItem(index)
       const { mediaType, src } = item
       return getMediaType(src, mediaType)
     },
     // get item thumbnail
     getItemThumb(index) {
-      const item = this.getItem(index)
+      const item = this.$_getItem(index)
       const { src, thumb } = item
       return getMediaThumb(src, thumb)
     },

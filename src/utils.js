@@ -80,6 +80,51 @@ export function getVimeoUrl (url) {
 }
 
 /**
+ * 获取文件类型
+ * @param {*} url 文件url
+ * @param {*} ext 文件类型
+ * @returns
+ */
+export function getMediaType (url, ext) {
+  if (['image', 'video', 'webVideo', 'iframe'].includes(ext)) {
+    return ext
+  } else {
+    if (isYoutube(url) || isVimeo(url)) {
+      return 'webVideo'
+    }
+
+    const type = ext || fileSuffix(url)
+    if (['mp4', 'mov', 'webm', 'ogg', 'avi'].includes(type)) {
+      return 'video'
+    } else if (['pdf'].includes(type)) {
+      return 'iframe'
+    } else {
+      return 'image'
+    }
+  }
+}
+
+export function getMediaThumb (url, thumb) {
+  if (thumb) {
+    return thumb
+  } else if (isYoutube(url)) {
+    return getYoutubeThumb(url) || url
+  } else {
+    return url
+  }
+}
+
+export function getVideoUrl (url, ext = {}) {
+  const youtubeUrl = getYoutubeUrl(url, ext.youtubeCookies)
+  if (youtubeUrl) return youtubeUrl
+
+  const vimeoUrl = getVimeoUrl(url)
+  if (vimeoUrl) return vimeoUrl
+
+  return url
+}
+
+/**
  * 获取文件后缀
  * @param {*} fileSrc 
  * @returns 
@@ -91,9 +136,10 @@ export function fileSuffix (fileSrc) {
 }
 
 /**
- * 
- * @param {String} src 文件源
- * @returns 
+ * 视频 sourceType
+ * @param {string} src 文件地址
+ * @param {object} param1 扩展参数
+ * @returns {string}
  */
 export function videoSourceType (src, { ext }) {
   const _ext = ext || fileSuffix(src)
@@ -216,7 +262,7 @@ export function loadIframe (src, callback) {
       document.body.removeChild(iframe)
     }
   }
-  iframe.setAttribute('style', 'width:0;height:0;opacity:0')
+  iframe.setAttribute('style', 'width:0;height:0;position:absolute;left:-99999em')
   iframe.setAttribute('src', src)
   document.body.appendChild(iframe)
   return iframe

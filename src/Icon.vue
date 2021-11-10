@@ -36,6 +36,12 @@
   <template v-if="name === 'zoom-out'">
     <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15zM7 10h8v2H7v-2z" fill="currentColor" />
   </template>
+  <template v-if="name === 'plus'">
+    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
+  </template>
+  <template v-if="name === 'minus'">
+    <path d="M5 11h14v2H5z" fill="currentColor" />
+  </template>
   <template v-if="name === 'download'">
     <path d="M13 10h5l-6 6-6-6h5V3h2v7zm-9 9h16v-7h2v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-8h2v7z" fill="currentColor" />
   </template>
