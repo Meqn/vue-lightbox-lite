@@ -39,7 +39,8 @@
         @touchend.prevent.stop="endSwipe"
         @click.stop="closeModal">
         <div ref="items" class="cool-lightbox-slide">
-          <div v-if="currentItem.mediaType === 'image'" ref="imgItem" key="image" :style="imgWrapperStyle" class="cool-lightbox-image">
+          <transition name="cool-lightbox-slide-change" mode="out-in">
+          <div v-if="currentItem.mediaType === 'image'" ref="imgItem" key="image" :style="mediaWrapStyle" class="cool-lightbox-image">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <img
                 v-load:image
@@ -57,7 +58,7 @@
             </transition>
           </div>
           <!--/imgs-slide-->
-          <div v-else-if="currentItem.mediaType === 'iframe'" ref="iframeItem" key="iframe" class="cool-lightbox-iframe">
+          <div v-else-if="currentItem.mediaType === 'iframe'" ref="iframeItem" key="iframe" :style="mediaWrapStyle" class="cool-lightbox-iframe">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
                 v-load:iframe
@@ -69,7 +70,7 @@
             </transition>
           </div>
           <!--/cool-lightbox-iframe-->
-          <div v-else ref="videoItem" key="video" class="cool-lightbox-video" :style="aspectRatioVideo">
+          <div v-else ref="videoItem" key="video" class="cool-lightbox-video" :style="{ ...mediaWrapStyle, ...aspectRatioVideo }">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
                 v-if="currentItem.mediaType === 'webVideo'"
@@ -90,11 +91,13 @@
                 playsinline
                 controls
                 controlslist="nodownload">
+                <!-- <source :src="currentItem.src" :type="videoSourceType"> -->
                 <source :src="currentItem.src" :type="videoSourceType">
                 Sorry, your browser doesn't support embedded videos
               </video>
             </transition>
           </div>
+          </transition>
           <!--/cool-lightbox-video-->
         </div>
         <!--/cool-lightbox-slide-->
@@ -210,7 +213,6 @@ import {
   getMediaType,
   getMediaThumb,
   getVideoUrl,
-  isMp4,
   isVideo,
   isYoutube,
   isVimeo,
@@ -325,8 +327,12 @@ export default {
       isDraging: false,
       canZoom: true,
       isZooming: false,
-      imgTransition: 'all .3s ease',
+      imgTransform: '',
       zoomBar: 0,
+
+      // rotate
+      viewTransition: 'all .3s ease',
+      viewRotate: 0,
 
       // slideshow playing data
       isPlayingSlideShow: false,
@@ -364,12 +370,30 @@ export default {
       return ''
     },
     // Images wrapper styles to use drag and zoom
-    imgWrapperStyle() {
-      return {
+    mediaWrapStyle() {
+      const styleObj = {
+        position: 'absolute',
         top: '50%',
-        left: '50%',
-        transition: this.imgTransition,
+        left: '50%'
       }
+      // transition
+      if (this.viewTransition) styleObj['transition'] = this.viewTransition
+
+      // transform
+      let transform = 'translate3d(-50%, -50%, 0px) scale3d(1, 1, 1)'
+      // process image
+      if (this.imgTransform && this.currentItem.mediaType === 'image') {
+        transform = this.imgTransform
+      }
+      // all rotate
+      if (this.viewRotate) {
+        transform += ` rotate(${this.viewRotate}deg)`
+      }
+      if (transform) {
+        styleObj['transform'] = transform
+      }
+
+      return styleObj
     },
     // lightbox styles
     lightboxStyles() {
@@ -460,9 +484,8 @@ export default {
   watch: {
     zoomBar(val, prev) {
       if(this.isZooming) {
-        const item = this.$refs.imgItem
         const newZoom = 1.6 + val / 10
-        item.style.transform = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px) scale3d('+newZoom+', '+newZoom+', '+newZoom+')';
+        this.imgTransform = `translate3d(calc(-50% + ${this.left}px), calc(-50% + ${this.top}px), 0px) scale3d(${newZoom}, ${newZoom}, ${newZoom})`
       }
     },
     index(val, prev) {
@@ -490,22 +513,15 @@ export default {
               this.$_stopVideos()
             }
           }
-          // 非<video>的加载
-          if (!isMp4(item.src)) {
-            this.changeLoading(true)
-          }
-
+          // loading
+          this.changeLoading(true)
           // add caption padding to Lightbox wrapper
           this.$_addCaptionPadding()
         }
-        // when animation is loaded
-        this.$nextTick(() => {
-          // reset zoom
-          this.resetZoom()
-          // reset swipe type
-          this.swipeType = null
-
-        })
+        // reset zoom
+        this.resetZoom()
+        // reset swipe type
+        this.swipeType = null
       }
     }, 
   },
@@ -555,23 +571,10 @@ export default {
       })
     },
     $_enableBodyLock() {
-      /* const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      if (!isMobile && (document.body.scrollHeight > window.innerHeight)) {
-        document.getElementsByTagName('head')[0].insertAdjacentHTML('beforeend', `
-          <style id="${viewerId}" type="text/css">
-          .compensate-for-scrollbar{margin-right: ${window.innerWidth - document.documentElement.clientWidth}px}
-          </style>
-        `)
-        document.body.classList.add('compensate-for-scrollbar')
-      } */
       document.body.classList.add('compensate-for-scrollbar')
     },
     $_disableBodyLock() {
       document.body.classList.remove('compensate-for-scrollbar')
-      /* const noscrollStyle = document.getElementById(t)
-      if (noscrollStyle !== null) {
-        noscrollStyle.remove()
-      } */
     },
     toggleFullScreenMode() {
       if(this.isFullScreenMode) {
@@ -582,6 +585,13 @@ export default {
     },
     fullScreenListener() {
       this.isFullScreenMode = !this.isFullScreenMode
+    },
+    onRotate(dir) {
+      if (dir === 'left') {
+        this.viewRotate += -90
+      } else if (dir === 'right') {
+        this.viewRotate += 90
+      }
     },
     onDownload() {
       console.log('download')
@@ -846,7 +856,6 @@ export default {
       if(this.IsSwipping) return false
 
       // item zoom
-      let item = this.$refs.imgItem
       // zoom variables
       const isZooming = this.isZooming
       // Is zooming check
@@ -862,13 +871,13 @@ export default {
       if(this.isZooming) {
         this.stopSlideShow()
         // add scale
-        item.style.transform  = 'translate3d(calc(-50%), calc(-50%), 0px) scale3d(1.6, 1.6, 1.6)'
+        this.imgTransform = 'translate3d(calc(-50%), calc(-50%), 0px) scale3d(1.6, 1.6, 1.6)'
         // hide buttons
         this.buttonsVisible = false
         // fix drag transition problems
         setTimeout(() => {
-          this.imgTransition = 'all .0s ease'
-        }, 100)
+          this.viewTransition = 'all 0s ease'
+        }, 10)
       } else {
         // show buttons 
         this.buttonsVisible = true
@@ -884,18 +893,16 @@ export default {
       this.zoomBar = 0
       this.isZooming = false
       this.swipeType = null
-      this.imgTransition = 'all .3s ease'
-      // this.$nextTick to fix imageZoom transition problems
+      this.viewTransition = 'all .3s ease'
+      // `this.$nextTick` is to fix imageZoom transition problems
       this.$nextTick(() => {
         // only if index is not null
-        const item = this.$refs.imgItem
-        if(this.imgIndex != null && item) {
-
+        if(this.imgIndex != null) {
           // reset styles
           if(this.disableZoom) {
-            item.style.transform  = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px)';
+            this.imgTransform = `translate3d(calc(-50% + ${this.left}px), calc(-50% + ${this.top}px), 0px)`
           } else {
-            item.style.transform  = 'translate3d(calc(-50% + '+this.left+'px), calc(-50% + '+this.top+'px), 0px) scale3d(1, 1, 1)';
+            this.imgTransform = `translate3d(calc(-50% + ${this.left}px), calc(-50% + ${this.top}px), 0px) scale3d(1, 1, 1)`
           }
 
           this.initialMouseX = 0
@@ -904,6 +911,15 @@ export default {
           }
         }
       })
+    },
+    resetRotate() {
+      if (this.viewRotate) {
+        this.viewTransition = 'all 0s ease'
+        this.viewRotate = 0
+        setTimeout(() => {
+          this.viewTransition = 'all .3s ease'
+        }, 100)
+      }
     },
     setAspectRatio() {
       //
@@ -1001,11 +1017,10 @@ export default {
       this.isVisible = false
       this.imgIndex = null
       this.stopSlideShow()
+      this.resetRotate()
       this.resetZoom()
       this.showThumbs = false
-
-      this.$emit('close')
-
+      
       // set starts X to 0
       this.startsX = 0
       this.initialMouseY = 0
@@ -1026,6 +1041,8 @@ export default {
       if(this.enableWheelEvent) {
         window.removeEventListener('wheel', this.$_wheelEvent)
       }
+      
+      this.$emit('close')
     },
     closeModal(event) {
       if (!this.clickOutsideHide) return false
@@ -1054,11 +1071,9 @@ export default {
       if(this.isZooming) {
         return false;
       }
-
       if(!isFromSlideshow) {
         this.stopSlideShow()
       }
-
       this.changeIndexToNext()
     },
 
@@ -1067,11 +1082,9 @@ export default {
       if(this.isZooming) {
         return false;
       }
-      
       if(!isFromSlideshow) {
         this.stopSlideShow()
       }
-
       this.changeIndexToPrev();
     },
 
@@ -1154,6 +1167,7 @@ export default {
       this.imageLoading = val
     },
     mediaLoaded(err, file) {
+      this.resetRotate()
       this.$_setAspectRatioVideo()
     }
   }
