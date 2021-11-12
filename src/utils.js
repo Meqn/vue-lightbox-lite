@@ -43,22 +43,10 @@ export function getYoutubeID (url) {
   return null
 }
 
-export function getYoutubeUrl (url, youtubeCookies = true) {
+export function getYoutubeUrl (url) {
   const ytId = getYoutubeID(url)
   if (ytId) {
-    // check if allows youtube cookies
-    if (youtubeCookies) {
-      return 'https://www.youtube.com/embed/' + ytId
-    }
-    return 'https://www.youtube-nocookie.com/embed/' + ytId
-  }
-  return null
-}
-
-export function getYoutubeThumb (url) {
-  const ytId = getYoutubeID(url)
-  if (ytId) {
-    return 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg'
+    return `https://www.youtube.com/embed/${ytId}?autoplay=0&mute=1&controls=1&rel=0`
   }
   return null
 }
@@ -74,7 +62,7 @@ export function getVimeoID (url) {
 export function getVimeoUrl (url) {
   const vimeoID = getVimeoID(url)
   if (vimeoID) {
-    return '//player.vimeo.com/video/' + vimeoID + '?hd=1&show_title=1&show_byline=1&show_portrait=0&fullscreen=1'
+    return `https://player.vimeo.com/video/${vimeoID}?autoplay=0&muted=1&byline=0&portrait=0&fullscreen=1`
   }
   return null
 }
@@ -85,15 +73,15 @@ export function getVimeoUrl (url) {
  * @param {*} ext 文件类型
  * @returns
  */
-export function getMediaType (url, ext) {
-  if (['image', 'video', 'webVideo', 'iframe'].includes(ext)) {
-    return ext
+export function getMediaType ({ src, mediaType }) {
+  if (['image', 'video', 'webVideo', 'iframe'].includes(mediaType)) {
+    return mediaType
   } else {
-    if (isYoutube(url) || isVimeo(url)) {
+    if (isYoutube(src) || isVimeo(src)) {
       return 'webVideo'
     }
 
-    const type = ext || fileSuffix(url)
+    const type = mediaType || fileSuffix(src)
     if (['mp4', 'mov', 'webm', 'ogg', 'avi'].includes(type)) {
       return 'video'
     } else if (['pdf'].includes(type)) {
@@ -104,18 +92,34 @@ export function getMediaType (url, ext) {
   }
 }
 
-export function getMediaThumb (url, thumb) {
-  if (thumb) {
-    return thumb
-  } else if (isYoutube(url)) {
-    return getYoutubeThumb(url) || url
-  } else {
-    return url
+export function getMediaThumb({ src, thumb, mediaType }) {
+  if (thumb) return thumb
+
+  const defaultPic = ''
+  const type = getMediaType({ src, mediaType })
+
+  if (type === 'image') return src
+  if (type === 'video' || type === 'webVideo') {
+    const ytId = getYoutubeID(src)
+    if (ytId) {
+      return 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg'
+    }
+
+    const vimeoId = getVimeoID(src)
+    if (vimeoId) {
+      // https://i.vimeocdn.com/video/17892962_320.jpg
+      return `https://vumbnail.com/${vimeoId}.jpg`
+    }
+
+    if (src.includes('.aliyuncs.com')) {
+      return src.split('?')[0] + '?x-oss-process=video/snapshot,t_1000,f_jpg,m_fast'
+    }
   }
+  return defaultPic
 }
 
-export function getVideoUrl (url, ext = {}) {
-  const youtubeUrl = getYoutubeUrl(url, ext.youtubeCookies)
+export function getVideoUrl (url) {
+  const youtubeUrl = getYoutubeUrl(url)
   if (youtubeUrl) return youtubeUrl
 
   const vimeoUrl = getVimeoUrl(url)
@@ -126,8 +130,8 @@ export function getVideoUrl (url, ext = {}) {
 
 /**
  * 获取文件后缀
- * @param {*} fileSrc 
- * @returns 
+ * @param {*} fileSrc 文件url
+ * @returns {string}
  */
 export function fileSuffix (fileSrc) {
   if (typeof fileSrc !== 'string') return ''
@@ -173,7 +177,7 @@ export function fullScreenMode () {
     el.msRequestFullscreen()
     return true
   }
-  console.warn('对不起，您的浏览器不支持全屏模式')
+  console.warn('Sorry, your browser does not support fullscreen mode!')
   return false
 }
 
@@ -214,6 +218,12 @@ export function matchesDom (target, selector, wrapper) {
   return false
 }
 
+/**
+ * 加载image
+ * @param {string} src image url
+ * @param {function} callback callback
+ * @returns {Image}
+ */
 export function loadImage (path, callback) {
   let img = new Image()
   img.onerror = function (error) {
@@ -232,6 +242,12 @@ export function loadImage (path, callback) {
   return img
 }
 
+/**
+ * 加载video
+ * @param {string} src video url
+ * @param {function} callback callback
+ * @returns {video}
+ */
 export function loadVideo (src, callback) {
   let video = document.createElement('video')
   video.onerror = function (error) {
@@ -247,6 +263,12 @@ export function loadVideo (src, callback) {
   return video
 }
 
+/**
+ * 加载iframe
+ * @param {string} src iframe url
+ * @param {function} callback callback
+ * @returns {iframe}
+ */
 export function loadIframe (src, callback) {
   let iframe = document.createElement('iframe')
   iframe.onerror = function (error) {

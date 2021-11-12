@@ -5,6 +5,11 @@ $breakpoints: (
   tablet: 1024px,
   desktop: 1202px
 );
+$--primary-color: #fa4242;
+$--text-color: #ddd;
+$--text-color-light: #333;
+$--mask-color: rgba(30, 30, 30, .95);
+$--mask-color-light: rgba(255, 255, 255, 0.95);
 
 // Breakpoints SCSS
 @mixin breakpoint($breakpoint) {
@@ -23,16 +28,13 @@ body.compensate-for-scrollbar {
   overflow: hidden !important;
   touch-action: none;
 }
-/* .lg-on {
-  scroll-behavior: unset;
-} */
 
 .cool-lightbox{
   position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 9999;
   transition: all .3s ease;
-  color: #ccc;
+  color: $--text-color;
   &.theme-light{
-    color: #4c4c4c;
+    color: $--text-color-light;
     
     .cool-lightbox-toolbar{
       background-color: rgba(255, 255, 255, 0.3);
@@ -40,8 +42,14 @@ body.compensate-for-scrollbar {
         color: #000;
       }
     }
+    .cool-lightbox-navigation{
+      background: rgba(225, 225, 225, .3);
+      &:hover {
+        color: #000;
+      }
+    }
     .cool-lightbox-mask{
-      background-color: rgba(255, 255, 255, 0.95);
+      background-color: $--mask-color-light;
     }
     .cool-lightbox-loading {
       border-color: #888;
@@ -54,16 +62,10 @@ body.compensate-for-scrollbar {
     padding: 0;
     margin: 0;
   }
-  button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    outline: none;
-  }
 
   .cool-lightbox-mask{
     position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-    background-color: rgba(30, 30, 30, .95);
+    background-color: $--mask-color;
   }
   .cool-lightbox-progressbar{
     position: absolute; top: 0; right: 0; left: 0; z-index: 200;
@@ -71,15 +73,14 @@ body.compensate-for-scrollbar {
     transform-origin: 0;
     transform: scaleX(0);
     transition: transform 3s linear;
-    background: #fa4242;
+    background: $--primary-color;
   }
   .cool-lightbox-navigation{
     position: absolute; z-index: 100;
     top: calc(50% - 50px);
     width: 40px; height: 40px;
     padding: 8px;
-    color: #ccc;
-    background: rgba(30, 30, 30, .4);
+    background: rgba(0, 0, 0, .45);
     cursor: pointer;
     transition: all .3s ease;
     &.hidden {
@@ -269,13 +270,6 @@ body.compensate-for-scrollbar {
       transition: none;
     }
   }
-  &.is-zoom-disabled {
-    .cool-lightbox-slide {
-      .cool-lightbox-image {
-        transform: translate3d(-50%, -50%, 0px);
-      }
-    }
-  }
   &.is-can-zoom {
     .cool-lightbox-slide {
       img {
@@ -335,7 +329,7 @@ body.compensate-for-scrollbar {
     &.theme-light{
       .cool-lightbox-thumbs{
         background-color: rgba(235, 235, 235, .5);
-        box-shadow: 0px 0px 6px -3.5px rgb(0 0 0 / 25%) inset;
+        box-shadow: 0px 0px 6px -3.5px rgba(0, 0, 0, .25) inset;
       }
     }
     .cool-lightbox-thumbs {
@@ -368,6 +362,7 @@ body.compensate-for-scrollbar {
     position: absolute;
     overflow: hidden;
     transition: all .3s ease;
+    color: $--primary-color;
     
     .cool-lightbox-thumbs__list {
       display: flex;
@@ -383,7 +378,8 @@ body.compensate-for-scrollbar {
         content: "";
         position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 10;
         transition: all .3s ease;
-        border: 3px solid #fa4242;
+        border: 3px solid currentColor;
+        border-radius: 4px;
         opacity: 0;
       }
       &.active, &:hover {
@@ -394,6 +390,7 @@ body.compensate-for-scrollbar {
       img {
         width: 100%;
         height: 100%;
+        border-radius: 4px;
         object-fit: cover;
       }
       &.is-video {
@@ -405,7 +402,7 @@ body.compensate-for-scrollbar {
           position: absolute; top: 50%; left: 50%; z-index: 10;
           transform: translate(-50%, -50%);
           width: 0; height: 0; font-size: 0;
-          border-left: 12px solid rgba(255, 255, 255, 0.9);
+          border-left: 12px solid rgba(255, 255, 255, 0.69);
           border-top: 8px solid transparent;
           border-bottom: 8px solid transparent;
         }
@@ -421,7 +418,7 @@ body.compensate-for-scrollbar {
   .cool-lightbox-video,
   .cool-lightbox-image{
     // position: absolute; top: 50%; left: 50%;
-    // transform: translate3d(-50%, -50%, 0px) scale3d(1, 1, 1);
+    // transform: translate3d(-50%, -50%, 0px);
     // transition: all .3s ease;
     display: flex; justify-content: center; align-items: center;
     width: 100%; height: 100%;
