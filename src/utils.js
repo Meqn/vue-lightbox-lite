@@ -282,6 +282,7 @@ export function loadIframe (src, callback) {
   iframe.destroy = function () {
     if (iframe) {
       document.body.removeChild(iframe)
+      iframe.destroy = null
     }
   }
   iframe.setAttribute('style', 'width:0;height:0;position:absolute;left:-99999em')

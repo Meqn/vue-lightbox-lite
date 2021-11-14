@@ -56,7 +56,6 @@ export default {
       // $el 用于销毁load时插入的DOM
       // load file
       const $el = loadMethod(_src, function (err, result) {
-        console.log('loading complete ...', err, result)
         // loading后显示元素
         el.style.visibility = 'visible'
         try {

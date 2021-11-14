@@ -3,7 +3,7 @@
   <div
     v-if="isVisible"
     :id="viewerId"
-    :class="['cool-lightbox', ...lightboxClasses]"
+    :class="['cool-lightbox', ...lightboxClasses, customClass]"
     :style="{ 'z-index': zIndex }">
     <div class="cool-lightbox-mask" :style="{ 'background-color': overlayColor }"></div>
     <!-- 缩略图列表 -->
@@ -247,6 +247,7 @@ export default {
       type: String,
       default: 'dark'
     },
+    customClass: String,
     highColor: {
       type: String,
       default: '#fa4242',
@@ -271,7 +272,6 @@ export default {
       type: Number,
       default: 3500,
     },
-    disableZoom: Boolean,
     showGallery: Boolean,
     galleryPosition: {
       type: String,
@@ -444,7 +444,7 @@ export default {
     hasNext() {
       return (this.imgIndex + 1 < this.items.length)
     },
-    // check if the slide has previous element 
+    // check if the slide has previous element
     hasPrevious() {
       return (this.imgIndex - 1 >= 0)
     },
@@ -466,19 +466,24 @@ export default {
       const { toolbar, currentItem, items } = this
       if (toolbar) return toolbar
       if (items.length === 1) {
-        if (['image', 'video'].includes(currentItem.mediaType)) {
+        if (currentItem.mediaType === 'image') {
+          return ['zoom', 'rotate', 'close']
+        } else if (currentItem.mediaType === 'video') {
           return ['rotate', 'close']
         } else {
           return ['close']
         }
       } else {
-        return ['counter', 'slide', 'rotate', 'gallery', 'fullscreen', 'download', 'close']
+        return ['counter', 'zoom', 'slide', 'rotate', 'gallery', 'fullscreen', 'download', 'close']
       }
+    },
+    disableZoom() {
+      return !this.toolbarList.includes('zoom')
     }
   },
   watch: {
     zoomBarSize(val, prev) {
-      if(this.isZooming) {
+      if (this.isZooming) {
         const newZoom = 1.6 + val / 10
         this.imgTransform = `translate3d(calc(-50% + ${this.left}px), calc(-50% + ${this.top}px), 0px) scale3d(${newZoom}, ${newZoom}, ${newZoom})`
       }
@@ -498,12 +503,12 @@ export default {
           this.$emit('update:index', val)
         }
         // 切换预览
-        if(val !== null) {
+        if (val !== null) {
           const item = this.$_getItem(val)
           // 重置loading
           this.changeLoading(false)
 
-          if(val !== prev) {
+          if (val !== prev) {
             if (!isYoutube(item.src) && !isVimeo(item.src)) {
               this.$_stopVideos()
             }
@@ -534,7 +539,7 @@ export default {
       this.$once('hook:beforeDestroy', removeFullscreenListener.bind(this, this.fullScreenListener))
     }
   },
-  beforeDestroy () {
+  destroyed() {
     if (this.enableScrollLock) {
       this.$_disableBodyLock()
     }
@@ -542,7 +547,6 @@ export default {
     this.$root.removeChild(this.$el)
     this.$root = null
   },
-
   methods: {
     $_stopVideos() {
       this.$nextTick(() => {
@@ -642,8 +646,8 @@ export default {
         }
         // mobile caseS
         if (event.type === 'touchmove') {
-          this.endMouseX = this.$_getMouseXPosFromEvent(event);
-          this.endMouseY = this.$_getMouseYPosFromEvent(event);
+          this.endMouseX = this.$_getMouseXPosFromEvent(event)
+          this.endMouseY = this.$_getMouseYPosFromEvent(event)
         }
       }
     },
@@ -725,17 +729,17 @@ export default {
 
     // toggle play slideshow event
     toggleSlide() {
-      if(!this.toolbarList.includes('slide')) {
+      if (!this.toolbarList.includes('slide')) {
         return false
       }
 
-      if(!this.hasNext && !this.loopData) {
+      if (!this.hasNext && !this.loopData) {
         return false
       }
       this.isPlayingSlideShow = !this.isPlayingSlideShow
 
       // if is playing move if not stop it
-      if(this.isPlayingSlideShow) {
+      if (this.isPlayingSlideShow) {
         this.move()
       } else {
         this.stopSlideShow()
@@ -875,16 +879,16 @@ export default {
       // `this.$nextTick` is to fix imageZoom transition problems
       this.$nextTick(() => {
         // only if index is not null
-        if(this.imgIndex != null) {
+        if (this.imgIndex != null) {
           // reset styles
-          if(this.disableZoom) {
+          if (this.disableZoom) {
             this.imgTransform = `translate3d(calc(-50% + ${this.left}px), calc(-50% + ${this.top}px), 0px)`
           } else {
             this.imgTransform = `translate3d(calc(-50% + ${this.left}px), calc(-50% + ${this.top}px), 0px) scale3d(1, 1, 1)`
           }
 
           this.initialMouseX = 0
-          if(window.innerWidth >= 700) {
+          if (window.innerWidth >= 700) {
             this.buttonsVisible = true
           }
         }
@@ -925,29 +929,30 @@ export default {
 
     $_wheelEvent(event) {
       const delay = 350;
-      const currentTime = new Date().getTime();
-      let direction = event.deltaY > 0 ? 'top' : 'down';
+      const currentTime = new Date().getTime()
+      let direction = event.deltaY > 0 ? 'top' : 'down'
 
-      if (currentTime - this.prevTime < delay) return;
+      if (currentTime - this.prevTime < delay) return
 
-      this.prevTime = currentTime;
+      this.prevTime = currentTime
 
       switch (direction) {
         case 'top':
-          return this.changeIndexToPrev();
-          break;
+          this.changeIndexToPrev()
+          break
         case 'down':
-          return this.changeIndexToNext();
+          this.changeIndexToNext()
+          break
       }
     },
-    // caption size 
+    // caption size
     $_addCaptionPadding() {
       this.$nextTick(() => {
-        if(this.currentItem.title || this.currentItem.descripcion) {
-          const el = this.$el.querySelector('.cool-lightbox-caption');
-          if(el) {
+        if (this.currentItem.title || this.currentItem.descripcion) {
+          const el = this.$el.querySelector('.cool-lightbox-caption')
+          if (el) {
             this.paddingBottom = el.offsetHeight
-          } 
+          }
         } else {
           this.paddingBottom = 0
         }
@@ -1023,7 +1028,7 @@ export default {
       if (!this.clickOutsideHide) return false
       // 加载中
       if (this.itemLoading) return false
-      if(this.IsSwipping) return false
+      if (this.IsSwipping) return false
 
       const elements = [
         'img',
@@ -1043,10 +1048,10 @@ export default {
 
     // next slide event
     next(isFromSlideshow = false) {
-      if(this.isZooming) {
-        return false;
+      if (this.isZooming) {
+        return false
       }
-      if(!isFromSlideshow) {
+      if (!isFromSlideshow) {
         this.stopSlideShow()
       }
       this.changeIndexToNext()
@@ -1054,22 +1059,22 @@ export default {
 
     // prev slide event
     previous(isFromSlideshow = false) {
-      if(this.isZooming) {
-        return false;
+      if (this.isZooming) {
+        return false
       }
-      if(!isFromSlideshow) {
+      if (!isFromSlideshow) {
         this.stopSlideShow()
       }
-      this.changeIndexToPrev();
+      this.changeIndexToPrev()
     },
 
     // change to next index
     changeIndexToNext() {
-      if(this.hasNext) {
+      if (this.hasNext) {
         this.change(this.imgIndex + 1)
       } else {
         // only if has loop prop
-        if(this.loopData) {
+        if (this.loopData) {
           this.change(0)
         }
       }
@@ -1077,11 +1082,11 @@ export default {
 
     // change to prev index
     changeIndexToPrev() {
-      if(this.hasPrevious) {
+      if (this.hasPrevious) {
         this.change(this.imgIndex - 1)
       } else {
         // only if has loop prop
-        if(this.loopData) {
+        if (this.loopData) {
           this.change(this.items.length - 1)
         }
       }
@@ -1093,7 +1098,7 @@ export default {
 
       setTimeout(() => {
         this.$emit('change-end', index)
-      }, 400)
+      }, 350)
     },
     $_getItem(index) {
       try {
