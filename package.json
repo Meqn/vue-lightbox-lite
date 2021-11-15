@@ -1,22 +1,28 @@
 {
-  "name": "vue-viewer-lite",
-  "description": "viewer component for vue.js",
+  "name": "vue-lightbox-lite",
+  "description": "A lightweight image and video lightbox gallery component for Vue",
   "keywords": [
     "vue",
-    "component",
-    "vue component",
-    "vue template",
-    "vue component template"
+    "lightbox",
+    "gallery",
+    "viewer",
+    "vue-lightbox",
+    "vue-gallery",
+    "vue-viewer"
   ],
-  "version": "1.1.0",
-  "homepage": "https://Meqn.github.io/vue-component-template/",
+  "main": "dist/VueLightbox.umd.js",
+  "module": "dist/VueLightbox.esm.js",
+  "unpkg": "dist/VueLightbox.min.js",
+  "jsdelivr": "dist/VueLightbox.min.js",
+  "version": "1.0.0",
+  "homepage": "https://Meqn.github.io/vue-lightbox-lite/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Meqn/vue-component-template.git"
+    "url": "git+https://github.com/Meqn/vue-lightbox-lite.git"
   },
   "author": "Mervin <mengqing723@gmail.com>",
   "bugs": {
-    "url": "https://github.com/Meqn/v-resize-observer/issues"
+    "url": "https://github.com/Meqn/vue-lightbox-lite/issues"
   },
   "scripts": {
     "dev": "vue-cli-service serve ./example/main.js",

@@ -1,0 +1,9 @@
+build/
+example/
+docs/
+node_modules/
+tests/
+*.lock
+*.js
+*.yml
+doc.md
