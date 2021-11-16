@@ -2,10 +2,9 @@
 
 A lightweight image, video and iframe lightbox gallery component for Vue. Supports zoom, rotation, autoplay, captions  and so on, based on [Vue-cool-lightbox](https://github.com/lucaspulliese/vue-cool-lightbox).
 
-![default screenshot](./src/assets/screen_default.jpg)
+![default screenshot](https://cdn.jsdelivr.net/gh/Meqn/vue-lightbox-lite/src/assets/screen_default.jpg)
 
-![light screenshot](./src/assets/screen_light.jpg)
-
+![light screenshot](https://cdn.jsdelivr.net/gh/Meqn/vue-lightbox-lite/src/assets/screen_light.jpg)
 
 ## Features
 1. No external dependencies.
