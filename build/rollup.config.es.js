@@ -8,8 +8,6 @@ const config = Object.assign({}, base, {
   },
   external: [
     ...base.external,
-    'vue',
-    'lodash/isFunction',
     /@babel\/runtime/,
   ],
 })

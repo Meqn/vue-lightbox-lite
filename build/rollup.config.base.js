@@ -4,11 +4,11 @@ import vue from 'rollup-plugin-vue'
 import commonjs from '@rollup/plugin-commonjs'
 import replace from '@rollup/plugin-replace'
 import postcss from 'rollup-plugin-postcss'
+import autoprefixer from 'autoprefixer'
 import analyze from 'rollup-plugin-analyzer'
 
 const pkg = require('../package.json')
-
-export const name = 'VueComponent'
+export const name = 'VueLightbox'
 
 export default {
   input: 'src/index.js',
@@ -29,7 +29,13 @@ export default {
       VERSION: JSON.stringify(pkg.version),
       preventAssignment: false,
     }),
-    postcss(),
+    postcss({
+      minimize: true,
+      plugins: [
+        autoprefixer()
+      ],
+      extract: 'index.css'
+    }),
     analyze(),
   ],
   watch: {
