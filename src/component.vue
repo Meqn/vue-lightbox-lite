@@ -5,7 +5,9 @@
     :id="viewerId"
     :class="['cool-lightbox', ...lightboxClasses, customClass]"
     :style="{ 'z-index': zIndex }">
+
     <div class="cool-lightbox-mask" :style="{ 'background-color': overlayColor }"></div>
+
     <!-- 缩略图列表 -->
     <div v-if="toolbarList.includes('gallery') && items.length > 1" class="cool-lightbox-thumbs" :style="{ color: highColor }">
       <div class="cool-lightbox-thumbs__list">
@@ -32,6 +34,7 @@
       <!-- 主体区域 -->
       <!-- 将点击关闭、滑动等事件绑定在该元素上, click 和 touch不能共存 -->
       <div
+        ref="content"
         class="cool-lightbox-main"
         @mousedown.prevent.stop="startSwipe"
         @mousemove.prevent.stop="continueSwipe"
@@ -59,7 +62,7 @@
             </transition>
           </div>
           <!--/imgs-slide-->
-          <div v-else-if="currentItem.mediaType === 'iframe'" ref="iframeItem" key="iframe" :style="mediaWrapStyle" class="cool-lightbox-iframe">
+          <div v-else-if="currentItem.mediaType === 'iframe'" ref="iframeItem" key="iframe" :style="{ ...mediaWrapStyle, ...iframeStyles }" class="cool-lightbox-iframe">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
                 v-load:iframe
@@ -75,14 +78,13 @@
             </transition>
           </div>
           <!--/cool-lightbox-iframe-->
-          <div v-else ref="videoItem" key="video" class="cool-lightbox-video" :style="{ ...mediaWrapStyle, ...aspectRatioVideo }">
+          <div v-else ref="videoItem" key="video" class="cool-lightbox-video" :style="{ ...mediaWrapStyle, ...videoStyles }">
             <transition name="cool-lightbox-slide-change" mode="out-in">
               <iframe
                 v-if="currentItem.mediaType === 'webVideo'"
-                class="js-video"
                 v-load:webVideo
                 :data-src="currentItem.src"
-                :data-autoplay="autoplay"
+                :data-autoplay="video.autoplay"
                 :key="currentItem.src"
                 frameborder="0"
                 scrolling="no"
@@ -96,10 +98,9 @@
               </iframe>
               <video
                 v-else
-                class="js-video"
                 v-load:video
                 :data-src="currentItem.src"
-                :data-autoplay="autoplay"
+                :data-autoplay="video.autoplay"
                 :key="currentItem.src"
                 playsinline
                 controls
@@ -216,12 +217,12 @@ import {
   randomStr,
   isObject,
   isNumber,
+  isMobile,
+  cssUnit,
   getMediaType,
   getMediaThumb,
   getVideoUrl,
   isVideo,
-  isYoutube,
-  isVimeo,
   videoSourceType
 } from './utils'
 
@@ -257,7 +258,6 @@ export default {
       default: 99999,
     },
     overlayColor: String,
-    autoplay: Boolean,
     // 导航器
     navigator: {
       type: Boolean,
@@ -283,11 +283,13 @@ export default {
       type: Object,
       default: () => ({
         autoplay: 0,
-        muted: 1,
-        ratio: 16 / 9,
-        maxWidth: '100%',
-        maxHeight: '100%'
+        // width, height, maxWidth, maxHeight
+        ratio: 1.77778 // 16 : 9
       })
+    },
+    iframe: {
+      type: Object,
+      default: () => ({})
     },
     enableWheelEvent: Boolean,
     enableScrollLock: {
@@ -323,7 +325,7 @@ export default {
       isFullScreenMode: false,
 
       // aspect ratio videos
-      aspectRatioVideo: {
+      aspectRatio: {
         width: 'auto',
         height: 'auto',
       },
@@ -352,6 +354,7 @@ export default {
       stylesInterval: {
         'display': 'block'
       },
+      $parentEl: null,
       // id
       viewerId: 'viewer-' + randomStr()
     }
@@ -399,8 +402,31 @@ export default {
         transform += ` rotate(${this.viewRotate}deg)`
       }
       if (transform) {
-        styleObj['transform'] = transform
+        styleObj.transform = transform
       }
+
+      return styleObj
+    },
+    videoRatio() {
+      let ratio = 1.77778
+      const { currentItem, video } = this
+      if (currentItem && currentItem.ratio) {
+        ratio = currentItem.ratio
+      } else if (video && video.ratio) {
+        ratio = video.ratio
+      }
+      return ratio
+    },
+    iframeStyles() {
+      const styleObj = this.$_getItemSizes(this.iframe)
+      return Object.assign({}, this.iframe, styleObj)
+    },
+    videoStyles() {
+      const styleObj = this.$_getItemSizes(this.video)
+      const { width, height } = this.aspectRatio
+
+      if (!styleObj.width) styleObj['width'] = width
+      if (!styleObj.height) styleObj['height'] = height
 
       return styleObj
     },
@@ -448,23 +474,16 @@ export default {
     hasPrevious() {
       return (this.imgIndex - 1 >= 0)
     },
-    $root: {
-      get() {
-        const { container } = this
-        if (container instanceof HTMLElement) {
-          return container
-        } else if (typeof container === 'string') {
-          const _container = document.querySelector(container)
-          return _container || null
-        }
-        return null
-      },
-      // Computed property "$root" was assigned to but it has no setter
-      set() {}
-    },
     toolbarList() {
       const { toolbar, currentItem, items } = this
-      if (toolbar) return toolbar
+      if (toolbar && toolbar.length > 1) {
+        if (isMobile) {
+          return toolbar.filter(tool => {
+            return tool !== 'fullscreen' && tool !== 'download'
+          })
+        }
+        return toolbar
+      }
       if (items.length === 1) {
         if (currentItem.mediaType === 'image') {
           return ['zoom', 'rotate', 'close']
@@ -474,6 +493,9 @@ export default {
           return ['close']
         }
       } else {
+        if (isMobile) {
+          return ['counter', 'zoom', 'slide', 'rotate', 'gallery', 'close']
+        }
         return ['counter', 'zoom', 'slide', 'rotate', 'gallery', 'fullscreen', 'download', 'close']
       }
     },
@@ -489,7 +511,6 @@ export default {
       }
     },
     index(val, prev) {
-      console.log('wathch index ', val, prev)
       // 加入`isVisible`判断，防止外界更改index后重新初始化
       if (isNumber(val) && !this.isVisible) {
         this.$_initial(val)
@@ -498,25 +519,21 @@ export default {
     imgIndex: {
       immediate: true,
       handler(val, prev) {
-        console.log('wathch imgIndex ', val, prev)
         if (val !== this.index) {
           this.$emit('update:index', val)
         }
         // 切换预览
         if (val !== null) {
-          const item = this.$_getItem(val)
           // 重置loading
           this.changeLoading(false)
-
-          if (val !== prev) {
-            if (!isYoutube(item.src) && !isVimeo(item.src)) {
-              this.$_stopVideos()
-            }
-          }
           // loading
           this.changeLoading(true)
           // add caption padding to Lightbox wrapper
           this.$_addCaptionPadding()
+          // set video aspect ratio
+          if (['webVideo', 'video'].includes(this.currentItem.mediaType)) {
+            this.$_setAspectRatio(this.videoRatio)
+          }
         }
         // reset zoom
         this.resetZoom()
@@ -526,11 +543,14 @@ export default {
     }
   },
   mounted() {
-    if (!this.$root) {
+    // set container
+    this.$_setParentEl()
+    
+    if (!this.$parentEl) {
       throw Error('container is not valid HTMLElement!')
     }
     // Insert $el
-    this.$root.appendChild(this.$el)
+    this.$parentEl.appendChild(this.$el)
 
     if (isNumber(this.index)) {
       this.$_initial(this.index)
@@ -544,34 +564,62 @@ export default {
       this.$_disableBodyLock()
     }
     // remove lightbox element
-    this.$root.removeChild(this.$el)
-    this.$root = null
+    if (this.$el && this.$el.parentNode) {
+      this.$el.parentNode.removeChild(this.$el)
+    }
+    if (this.$parentEl) this.$parentEl = null
   },
   methods: {
-    $_stopVideos() {
-      this.$nextTick(() => {
-        const videos = this.$el.querySelectorAll('.js-video')
-        const isVideoPlaying = video => !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2)
-        if (videos.length > 0) {
-          Array.prototype.forEach.call(videos, video => {
-            const type = video.tagName
-            if (type === 'IFRAME') {
-              var iframeSrc = video.src
-              video.src = iframeSrc
-            }
-
-            if (isVideoPlaying(video)) {
-              video.pause()
-            }
-          })
-        }
-      })
-    },
     $_enableBodyLock() {
       document.body.classList.add('compensate-for-scrollbar')
     },
     $_disableBodyLock() {
       document.body.classList.remove('compensate-for-scrollbar')
+    },
+    $_setParentEl() {
+      const { container } = this
+      if (container instanceof HTMLElement) {
+        this.$parentEl = container
+      } else if (typeof container === 'string') {
+        this.$parentEl = document.querySelector(container)
+      }
+    },
+    $_getItemSizes(obj) {
+      const styleObj = {}
+      let { width, height, maxWidth, maxHeight } = this.currentItem
+
+      if (isObject(obj)) {
+        width = width || obj.width
+        height = height || obj.height
+        maxWidth = maxWidth || obj.maxWidth
+        maxHeight = maxHeight || obj.maxHeight
+      }
+
+      width && (styleObj.width = cssUnit(width))
+      height && (styleObj.height = cssUnit(height))
+      maxWidth && (styleObj['max-width'] = cssUnit(maxWidth))
+      maxHeight && (styleObj['max-height'] = cssUnit(maxHeight))
+
+      return styleObj
+    },
+    $_setAspectRatio(ratio) {
+      this.$nextTick(() => {
+        const $el = this.$refs['content']
+        if ($el) {
+          const { width, height } = $el.getBoundingClientRect()
+          if ((width / height) > ratio) {
+            this.aspectRatio = {
+              width: `${Math.floor(height * ratio)}px`,
+              height: `${Math.floor(height)}px`
+            }
+          } else {
+            this.aspectRatio = {
+              width: `${Math.floor(width)}px`,
+              height: `${Math.floor(width / ratio)}px`
+            }
+          }
+        }
+      })
     },
     toggleFullScreenMode() {
       if (this.isFullScreenMode) {
@@ -758,7 +806,7 @@ export default {
     // move event in zoom
     move() {
       const self = this
-      this.progressWidth = 100;
+      this.progressWidth = 100
       this.intervalProgress = setInterval(frame, this.slideDuration + 90)
       this.stylesInterval = {
         'transform': 'scaleX(1)',
@@ -903,34 +951,10 @@ export default {
         }, 100)
       }
     },
-    setAspectRatio() {
-      //
-    },
-    // Aspect Ratio responsive video
-    $_setAspectRatioVideo(video) {
-      this.$nextTick(() => {
-        const $el = this.$el.querySelector('.cool-lightbox-main')
-        const { width, height } = $el.getBoundingClientRect()
-        // const ratio = (video && video.width && video.height) ? video.width / video.height : 16 / 9
-        const ratio = 16 / 9
-        if ((width / height) > ratio) {
-          this.aspectRatioVideo = {
-            width: `${Math.floor(height * ratio)}px`,
-            height: `${Math.floor(height)}px`
-          }
-        } else {
-          this.aspectRatioVideo = {
-            width: `${Math.floor(width)}px`,
-            height: `${Math.floor(width / ratio)}px`
-          }
-        }
-      })
-    },
-
     $_wheelEvent(event) {
-      const delay = 350;
+      const delay = 350
       const currentTime = new Date().getTime()
-      let direction = event.deltaY > 0 ? 'top' : 'down'
+      const direction = event.deltaY > 0 ? 'top' : 'down'
 
       if (currentTime - this.prevTime < delay) return
 
@@ -1138,9 +1162,6 @@ export default {
     },
     changeLoading(val) {
       this.itemLoading = val
-    },
-    mediaLoaded(err, result) {
-      this.$_setAspectRatioVideo(result)
     }
   }
 }

@@ -54,6 +54,7 @@
     </section>
   </article>
   <div class="item-list">
+    <button type="button" @click="itemIndex2 = 2">预览1图片</button>
     <img
       style="width:100px;height:100px;"
       v-for="(item, key) in items"
@@ -72,59 +73,85 @@
     :items="items"
     :index.sync="itemIndex"
     :show-gallery="false"
-    useZoomBar
     @open="onOpen"
     @close="onClose"
+  />
+
+  <Viewer
+    theme="light"
+    ref="view"
+    :items="items"
+    :index.sync="itemIndex2"
+    showGallery
+    gallery-position="bottom"
+    :iframe="{ maxWidth: '92%', maxHeight: '90%' }"
+    :video="{
+      autoplay: 1
+    }"
   />
 </div>
 </template>
 
 <script>
-import Viewer from '../src/index.vue'
+import Viewer from '../src/index.js'
+// import '../dist/index.min.css'
+// import Viewer from '../dist/VueLightbox.esm'
 export default {
   name: 'App',
   components: {
-    Viewer
+    Viewer: Viewer.component
   },
   data () {
     return {
       itemIndex: null,
+      itemIndex2: null,
       items: [
         {
           src: 'http://test-static-huariot-com.oss-cn-hangzhou.aliyuncs.com/material_upload/1634894586473_1vl2wewu.jpg',
-          title: '这里是图片的大标题',
-          description: '图片内容介绍...图片内容介绍图片内容介绍图片内容介绍图片内容介绍图片内容介绍图片内容介绍'
+          title: '余晖下的大都市',
+          description: '远山、近水、及眼前错落有致的村屋，多么祥和的一片。不，那是您眼瞎了！'
         },
-        'http://hips.hearstapps.com/hmg-prod.s3.amazonaws.com/images/nature-quotes-1557340276.jpg?crop=0.666xw:1.00xh;0.168xw,0&resize=640:*',
-        'https://images.unsplash.com/photo-1420593248178-d88870618ca0?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&w=1000&q=80',
+        // 'http://hips.hearstapps.com/hmg-prod.s3.amazonaws.com/images/nature-quotes-1557340276.jpg?crop=0.666xw:1.00xh;0.168xw,0&resize=640:*',
+        // 'https://images.unsplash.com/photo-1420593248178-d88870618ca0?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&w=1000&q=80',
         {
           src: 'https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1000&amp;q=80',
           srcset: 'https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=387&amp;q=80 387w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=687&amp;q=80 687w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=774&amp;q=80 774w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=987&amp;q=80 987w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1287&amp;q=80 1287w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1374&amp;q=80 1374w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1587&amp;q=80 1587w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1887&amp;q=80 1887w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1974&amp;q=80 1974w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=2187&amp;q=80 2187w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=2487&amp;q=80 2487w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=2574&amp;q=80 2574w, https://images.unsplash.com/photo-1635988936044-66298f617d29?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=2618&amp;q=80 2618w',
           sizes: '(max-width: 767px) 100vw, (max-width: 419px) min(100%, 387px), (max-height: 756px) min(100%, 387px), (min-aspect-ratio: 2618/3927) calc((calc(100vh - 175px)) * 0.666667), calc(100vw - 32px)'
         },
-        'https://static-huariot-com.oss-cn-hangzhou.aliyuncs.com/MaterialMangerApp-iOS-Video/23362/202111041811492052.mp4',
+        {
+          src: 'https://static-huariot-com.oss-cn-hangzhou.aliyuncs.com/MaterialMangerApp-iOS-Video/23362/202111041811492052.mp4',
+          width: 360,
+          height: 480
+        },
         {
           src: 'https://vue-cool-lightbox.lucaspulliese.com/video.mp4',
           autoplay: true
         },
         {
-          src: 'https://www.youtube.com/watch?v=d0tU18Ybcvk',
+          src: 'http://test-static-huariot-com.oss-cn-hangzhou.aliyuncs.com/material_upload/1634894456554_jqyw8jh0.mp4',
+          thumb: 'http://test-static-huariot-com.oss-cn-hangzhou.aliyuncs.com/material_upload/1634894456554_jqyw8jh0.mp4?x-oss-process=video/snapshot,t_7000,f_jpg,w_800,h_600,m_fast',
+        },
+        {
+          src: 'https://www.youtube.com/watch?v=SMKPKGW083c',
+          maxWidth: 800,
+          maxHeight: 450
+        },
+        {
+          src: 'https://player.vimeo.com/video/30572181',
           autoplay: true,
           title: '这里是图片的大标题',
           description: '图片内容介绍...图片内容介绍图片内容介绍图片内容介绍图片内容介绍图片内容介绍图片内容介绍'
         },
         'http://static-huariot-com.oss-cn-hangzhou.aliyuncs.com/uploads/1635146506840/170efa78-f67e-4367-b807-13860727ae60.pdf',
         {
-          src: 'http://test-static-huariot-com.oss-cn-hangzhou.aliyuncs.com/material_upload/1634894456554_jqyw8jh0.mp4',
-          thumb: 'http://test-static-huariot-com.oss-cn-hangzhou.aliyuncs.com/material_upload/1634894456554_jqyw8jh0.mp4?x-oss-process=video/snapshot,t_7000,f_jpg,w_800,h_600,m_fast',
-        },
-        {
           src: 'http://www.zaiont.com',
           mediaType: 'iframe'
         },
         {
-          src: 'https://github.dev/lucaspulliese/vue-cool-lightbox/blob/master/src/components/CoolLightBox.vue',
-          mediaType: 'iframe'
+          src: 'http://www.qq.com',
+          mediaType: 'iframe',
+          width: 800,
+          height: 500
         }
       ]
     }

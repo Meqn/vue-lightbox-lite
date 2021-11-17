@@ -1,6 +1,8 @@
 # vue-lightbox-lite
 
-A lightweight image, video and iframe lightbox gallery component for Vue. Supports zoom, rotation, autoplay, captions  and so on, based on [Vue-cool-lightbox](https://github.com/lucaspulliese/vue-cool-lightbox).
+A lightweight image, video and iframe lightbox gallery component for Vue. Supports slide, zoom, rotation, autoplay, captions  and so on, based on [Vue-cool-lightbox](https://github.com/lucaspulliese/vue-cool-lightbox).
+
+轻量级的图片/视频 预览器，支持自动播放、旋转、缩放、全屏、键盘及手势滑动切换等。
 
 ![default screenshot](https://cdn.jsdelivr.net/gh/Meqn/vue-lightbox-lite/src/assets/screen_default.jpg)
 
@@ -9,12 +11,13 @@ A lightweight image, video and iframe lightbox gallery component for Vue. Suppor
 ## Features
 1. No external dependencies.
 2. Fully responsive.
-3. Full screen support.
-4. Multiple zoom levels.
-5. Rotate images.
-6. YouTube Vimeo and html5 videos Support.
-7. Keyboard Navigation for desktop.
-8. And many more.
+3. autoplay slides that play or pause
+4. Full screen support.
+5. Multiple zoom levels.
+6. Rotate images.
+7. YouTube Vimeo and html5 videos Support.
+8. Keyboard Navigation for desktop.
+9. And many more.
 
 
 ## Installation
@@ -127,45 +130,49 @@ export default {
 
 ## API
 
+
 ### Items attributes
-
-> `webVideo` includes youtube、vimeo、bilibili...
-
-| Name        | Type   | Default | Description                                         |
-| ----------- | ------ | ------- | --------------------------------------------------- |
-| src         | String |         | Url of the image/video/iframe                       |
-| mediaType   | String | `image` | media type,  `image`, `video`, `webVideo`, `iframe` |
-| ext         | String |         | e.g. `mp4`, `ogg`, `webm`, `pdf`                    |
-| thumb       | String |         |                                                     |
-| alt         | String |         |                                                     |
-| srcset      | String |         |                                                     |
-| sizes       | String |         |                                                     |
-| title       | String |         |                                                     |
-| description | String |         |                                                     |
+| Name        | Type           | Default | Description                                         |
+| ----------- | -------------- | ------- | --------------------------------------------------- |
+| src         | String         |         | Url of the image/video/iframe                       |
+| mediaType   | String         | `image` | media type,  `image`, `video`, `webVideo`, `iframe` |
+| ext         | String         |         | e.g. `mp4`, `ogg`, `webm`, `pdf`                    |
+| thumb       | String         |         |                                                     |
+| alt         | String         |         |                                                     |
+| srcset      | String         |         |                                                     |
+| sizes       | String         |         |                                                     |
+| title       | String         |         |                                                     |
+| description | String         |         |                                                     |
+| width       | String\|Number | `auto`  | Control width, `video` & `iframe`                   |
+| height      | String\|Number | `auto`  |                                                     |
+| maxWidth    | String\|Number | `auto`  |                                                     |
+| maxHeight   | String\|Number | `auto`  |                                                     |
 
 
 ### props
 
-| Name             | Type                    | Default             | Description                                   |
-| ---------------- | ----------------------- | ------------------- | --------------------------------------------- |
-| index            | Number                  | null                | Index of items to open                        |
-| items            | Array<Object \| String> |                     | Array of images/videos                        |
-| container        | Element \| String       | `document.body`     |                                               |
-| theme            | String                  | `dark`              | `dark`, `light`                               |
-| customClass      | String                  |                     |                                               |
-| zIndex           | Number                  | `9999`              |                                               |
-| highColor        | String                  | `#fa4242`           | progressbar color and thumbnails border-color |
-| overlayColor     | String                  |                     |                                               |
-| navigator        | Boolean                 | `true`              |                                               |
-| toolbar          | Array<String>           |                     |                                               |
-| loop             | Boolean                 | `true`              |                                               |
-| slideDuration    | Number                  | `3500`              |                                               |
-| showGallery      | Boolean                 | `false`             |                                               |
-| galleryPosition  | String                  |                     | `right`, `bottom`                             |
-| video            | Object                  | `{autoplay: false}` | video parameter                               |
-| enableWheelEvent | Boolean                 | `false`             |                                               |
-| enableScrollLock | Boolean                 | `true`              |                                               |
-| clickOutsideHide | Boolean                 | `true`              |                                               |
+| Name             | Type                    | Default                          | Description                                                  |
+| ---------------- | ----------------------- | -------------------------------- | ------------------------------------------------------------ |
+| index            | Number                  | null                             | Index of items to open                                       |
+| items            | Array<Object \| String> |                                  | Array of images/videos                                       |
+| container        | Element \| String       | `document.body`                  |                                                              |
+| theme            | String                  | `dark`                           | `dark`, `light`                                              |
+| customClass      | String                  |                                  |                                                              |
+| zIndex           | Number                  | `9999`                           |                                                              |
+| highColor        | String                  | `#fa4242`                        | progressbar color and thumbnails border-color                |
+| overlayColor     | String                  |                                  |                                                              |
+| navigator        | Boolean                 | `true`                           |                                                              |
+| toolbar          | Array<String>           |                                  | toolbar: `counter`, `zoom`, `slide`, `rotate`, `gallery`, `fullscreen`, `download`, `close` |
+| loop             | Boolean                 | `true`                           |                                                              |
+| slideDuration    | Number                  | `3500`                           |                                                              |
+| showGallery      | Boolean                 | `false`                          |                                                              |
+| galleryPosition  | String                  |                                  | `right`, `bottom`                                            |
+| video            | Object                  | `{autoplay: false, raito: 16/9}` | video parameter，`autoplay`, `width`,`height`,`maxWidth`,`maxHeight` |
+| iframe           | Object                  |                                  | `width`,`height`,`maxWidth`,`maxHeight`                      |
+| enableWheelEvent | Boolean                 | `false`                          |                                                              |
+| enableScrollLock | Boolean                 | `true`                           |                                                              |
+| clickOutsideHide | Boolean                 | `true`                           |                                                              |
+
 
 
 

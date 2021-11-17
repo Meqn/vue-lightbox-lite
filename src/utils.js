@@ -3,8 +3,16 @@ const vimeoRegx = /(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\
 
 export const isNumber = arg => !isNaN(parseFloat(arg)) && isFinite(arg)
 
-export function isObject (arg) {
-  return arg !== null && typeof arg === 'object'
+export const isObject = arg => Object.prototype.toString.call(arg) === '[object Object]'
+
+export const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent)
+
+export function cssUnit(val) {
+  const regx = /^\d+(px|em|%|vw|vh|rem)?$/
+  if (regx.test(val)) {
+    return isNaN(val) ? val : val + 'px'
+  }
+  return ''
 }
 
 export const randomStr = () => Math.floor(Math.random() * Date.now()).toString(36)
@@ -254,7 +262,7 @@ export function loadVideo (src, callback) {
     callback && callback(error)
     video.onerror = video = null
   }
-  video.onloadeddata = function () {
+  video.onloadedmetadata = function () {
     // width: video.videoWidth, height: video.videoHeight
     callback && callback(null, video)
     video.onloadeddata = video = null
@@ -271,6 +279,7 @@ export function loadVideo (src, callback) {
  */
 export function loadIframe (src, callback) {
   let iframe = document.createElement('iframe')
+  const iframeId = `iframe-${randomStr()}`
   iframe.onerror = function (error) {
     callback && callback(error)
     iframe.onerror = iframe = null
@@ -280,13 +289,17 @@ export function loadIframe (src, callback) {
     iframe.onload = iframe = null
   }
   iframe.destroy = function () {
-    if (iframe) {
-      document.body.removeChild(iframe)
-      iframe.destroy = null
+    const getIframe = document.getElementById(iframeId)
+    if (iframe && getIframe) {
+      if (getIframe === iframe) {
+        document.body.removeChild(iframe)
+      }
+      // iframe.destroy = null
     }
   }
   iframe.setAttribute('style', 'width:0;height:0;position:absolute;left:-99999em')
   iframe.setAttribute('src', src)
+  iframe.setAttribute('id', iframeId)
   document.body.appendChild(iframe)
   return iframe
 }

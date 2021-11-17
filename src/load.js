@@ -20,6 +20,10 @@ function setAutoplay(url) {
   }
 }
 
+function isAutoplay(arg) {
+  return parseInt(arg) === 1 || arg === 'true' || arg === true
+}
+
 function loadMedia(type) {
   const methods = {
     image: loadImage,
@@ -44,7 +48,7 @@ export default {
       ctx.resetRotate()
 
       // set autoplay
-      if (autoplay && (arg === 'video' || arg === 'webVideo')) {
+      if (isAutoplay(autoplay) && (arg === 'video' || arg === 'webVideo')) {
         if (el.tagName === 'VIDEO') {
           el.muted = true
           el.autoplay = true
@@ -55,21 +59,21 @@ export default {
 
       // $el 用于销毁load时插入的DOM
       // load file
-      const $el = loadMethod(_src, function (err, result) {
+      const $el = loadMethod(_src, function () {
         // loading后显示元素
         el.style.visibility = 'visible'
         try {
           // 设置 loading = false
           ctx.changeLoading(false)
           // laoding完成回调
-          if (el) {
+          /* if (el) {
             ctx.mediaLoaded(err, {
               width: result.width || result.videoWidth,
               height: result.height || result.videoHeight,
               type: arg,
               file: result
             })
-          }
+          } */
           el.src = _src
           if ($el && $el.destroy) $el.destroy()
         } catch (error) {
