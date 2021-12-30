@@ -77,7 +77,7 @@
     @close="onClose"
   />
 
-  <Viewer
+  <Lightbox
     theme="light"
     ref="view"
     :items="items"
@@ -94,12 +94,14 @@
 
 <script>
 import Viewer from '../src/index.js'
+import Lightbox from '../dist/VueLightbox.esm'
 // import '../dist/index.min.css'
 // import Viewer from '../dist/VueLightbox.esm'
 export default {
   name: 'App',
   components: {
-    Viewer: Viewer.component
+    Viewer,
+    Lightbox
   },
   data () {
     return {

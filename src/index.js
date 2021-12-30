@@ -11,7 +11,6 @@ if (typeof window !== 'undefined' && window.Vue) {
   Vue.use(install) // eslint-disable-line
 }
 
-export default {
-  install,
-  component: Lightbox
-}
+Lightbox.install = install
+
+export default Lightbox
