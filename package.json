@@ -14,7 +14,7 @@
   "module": "dist/VueLightbox.esm.js",
   "unpkg": "dist/VueLightbox.min.js",
   "jsdelivr": "dist/VueLightbox.min.js",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "homepage": "https://Meqn.github.io/vue-lightbox-lite/",
   "repository": {
     "type": "git",

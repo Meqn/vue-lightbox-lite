@@ -32,15 +32,15 @@ yarn add vue-lightbox-lite
 
 ## Usage
 
-### 1. Fully import
+### 1. Global import
 
 In main.js:
 ```js
 // main.js
-import VueLightbox from 'vue-lightbox-lite'
+import Lightbox from 'vue-lightbox-lite'
 import 'vue-lightbox-lite/dist/index.css'
 
-Vue.use(VueLightbox)
+Vue.use(Lightbox)
 ```
 
 In `component.vue`
@@ -89,9 +89,7 @@ export default {
 </script>
 ```
 
-### 2. On demand
-
-In Single File Components
+### 2. In Component
 
 ```html
 <template>
@@ -111,7 +109,7 @@ import 'vue-lightbox-lite/dist/index.css'
 
 export default {
   component: {
-    Viewer: VueLightbox.component
+    Viewer: VueLightbox
   },
   data() {
     return {
